@@ -1,0 +1,1 @@
+add_subdirectory(tandem_aligner)
