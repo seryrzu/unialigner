@@ -103,6 +103,7 @@ namespace tandem_aligner {
 
         template<typename htype>
         KmerAlignment<htype> glob_align(const PosHashVector<htype> & ph1, const PosHashVector<htype> & ph2,
+                                        logging::Logger & logger,
                                         const int64_t match = 1,
                                         const int64_t mismatch = -1000000,
                                         const int64_t indel = 0) {
@@ -123,7 +124,7 @@ namespace tandem_aligner {
 
             for (size_t i = 1; i < n; ++i) {
                 if (i % 1000 == 0) {
-                    std::cout << i << ' ' << n << std::endl;
+                    logger.info() << "Alignment iteration " << i << " out of " << n << std::endl;
                 }
                 for (size_t j = 1; j < m; ++j) {
                     const htype & h1 = ph1[i-1].hash;
@@ -134,7 +135,7 @@ namespace tandem_aligner {
                                             score[i][j-1] + indel});
                 }
             }
-            std::cout << score[n-1][m-1] << std::endl;
+            logger.info() << "Alignment score: " << score[n-1][m-1] << std::endl;
 
             KmerAlignment<htype> alignment;
             size_t i = n-1;
@@ -229,8 +230,11 @@ namespace tandem_aligner {
                 }
                 blocks.push_back({st1, st2, en1, en2, is_match});
             }
-            if (blocks.size() % 2 == 1) {
+            if (not blocks.empty() and blocks.back().is_match) {
                 blocks.emplace_back();
+            }
+            if (not blocks.empty() and not blocks.front().is_match) {
+                blocks.erase(blocks.begin());
             }
             return blocks;
         }
@@ -239,22 +243,21 @@ namespace tandem_aligner {
         AlignmentBlocks alignment2blocks(const KmerAlignment<htype> & alignment, size_t tol_gap) {
             const AlignmentBlocks blocks = compress_alignment(alignment);
 
-            auto it = blocks.cbegin();
-            if (not it->is_match) {
-                ++it;
-            }
-
-            VERIFY(it->is_match);
-
             AlignmentBlocks merged_blocks;
 
-            size_t st1 = it->st1;
-            size_t st2 = it->st2;
+            if (blocks.empty()) {
+                return merged_blocks;
+            }
+
+            size_t st1 = blocks.begin()->st1;
+            size_t st2 = blocks.begin()->st2;
             size_t en1 {0};
             size_t en2 {0};
             bool last_add { false };
-            for (auto it0 { it++ }; it != blocks.end(); ++it, ++it0, ++it, ++it0) {
+            for (auto it0 = blocks.cbegin(); it0 != blocks.cend(); std::advance(it0, 2)) {
                 VERIFY(it0->is_match);
+                auto it = it0;
+                ++it;
                 if (last_add) {
                     st1 = it0->st1;
                     st2 = it0->st2;
@@ -317,7 +320,7 @@ namespace tandem_aligner {
         logger.info() << "|pos hash vec 2| " << pos_hash_vec_2.size() << "\n";
 
         logger.info() << "Alignment computation started\n";
-        const details::KmerAlignment<htype> alignment = details::glob_align(pos_hash_vec_1, pos_hash_vec_2);
+        const details::KmerAlignment<htype> alignment = details::glob_align(pos_hash_vec_1, pos_hash_vec_2, logger);
         logger.info() << "Alignment computation finished\n";
 
         std::ofstream aligner_output;
