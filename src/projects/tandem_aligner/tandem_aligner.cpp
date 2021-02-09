@@ -8,9 +8,9 @@
 
 int main(int argc, char ** argv) {
     CLParser parser {{"output-dir=", "first=", "second=",
-                      "k-mer-size=10", "max_rare_freq=1"}, {},
+                      "k-mer-size=10", "max_rare_freq=1", "tol_gap=100"}, {},
                      {"o=output-dir", "f=first", "s=second",
-                      "k=k-mer-size", "r=max_rare_freq"}};
+                      "k=k-mer-size", "r=max_rare_freq", "g=tol_gap"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
         std::cerr << "Incorrect parameters" << std::endl;
@@ -40,8 +40,9 @@ int main(int argc, char ** argv) {
 
     size_t k = std::stoi(parser.getValue("k-mer-size"));
     size_t max_rare_freq = std::stoi(parser.getValue("max_rare_freq"));
+    size_t tol_gap = std::stoi(parser.getValue("tol_gap"));
 
-    tandem_aligner::tandem_align<unsigned __int128>(first_path, second_path, k, max_rare_freq, output_dir, logger);
+    tandem_aligner::tandem_align<unsigned __int128>(first_path, second_path, k, max_rare_freq, tol_gap, output_dir, logger);
 
     return 0;
 }

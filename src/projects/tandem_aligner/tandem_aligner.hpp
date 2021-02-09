@@ -81,7 +81,22 @@ namespace tandem_aligner {
         }
 
         template <typename htype>
-        using AlignedPosHash = std::pair<std::optional<PosHash<htype>>, std::optional<PosHash<htype>>>;
+        struct AlignedPosHash {
+            std::optional<PosHash<htype>> left;
+            std::optional<PosHash<htype>> right;
+
+            bool is_match() const {
+                return left.has_value() and right.has_value();
+            }
+
+            bool is_del() const {
+                return not is_match() and right.has_value();
+            }
+
+            bool is_ins() const {
+                return not is_match() and left.has_value();
+            }
+        };
 
         template <typename htype>
         using KmerAlignment = std::vector<AlignedPosHash<htype>>;
@@ -129,24 +144,24 @@ namespace tandem_aligner {
                 const htype & h2 = ph2[j-1].hash;
                 int64_t add = h1 == h2 ? match : mismatch;
                 if (score[i][j] == score[i-1][j-1] + add) {
-                    alignment.emplace_back(ph1[i-1], ph2[j-1]);
+                    alignment.push_back({ph1[i-1], ph2[j-1]});
                     --i;
                     --j;
                 } else if (score[i][j] == score[i-1][j] + indel) {
-                    alignment.emplace_back(ph1[i-1], std::nullopt);
+                    alignment.push_back({ph1[i-1], std::nullopt});
                     --i;
                 } else {
                     VERIFY(score[i][j] == score[i][j-1] + indel);
-                    alignment.emplace_back(std::nullopt, ph2[j-1]);
+                    alignment.push_back({std::nullopt, ph2[j-1]});
                     --j;
                 }
             }
             while (j > 0) {
-                alignment.emplace_back(std::nullopt, ph2[j-1]);
+                alignment.push_back({std::nullopt, ph2[j-1]});
                 --j;
             }
             while (i > 0) {
-                alignment.emplace_back(ph1[i-1], std::nullopt);
+                alignment.push_back({ph1[i-1], std::nullopt});
                 --i;
             }
 
@@ -168,12 +183,103 @@ namespace tandem_aligner {
                 }
             }
         }
+
+        struct AlignmentBlock {
+            size_t st1 {0};
+            size_t st2 {0};
+            size_t en1 {0};
+            size_t en2 {0};
+            bool is_match {false};
+        };
+
+        std::ostream & operator << (std::ostream & os, const AlignmentBlock & block) {
+            os << block.st1 << "\t" << block.en1 << "\t" << block.st2 << "\t" << block.en2 << "\n";
+            return os;
+        }
+
+        using AlignmentBlocks = std::vector<AlignmentBlock>;
+
+        template<typename htype>
+        AlignmentBlocks compress_alignment(const KmerAlignment<htype> & alignment) {
+            AlignmentBlocks blocks;
+            auto it = alignment.cbegin();
+            while (it != alignment.end()) {
+                bool is_match = it->is_match();
+                size_t st1 {it->left.value_or(PosHash<htype>()).pos};
+                size_t st2 {it->right.value_or(PosHash<htype>()).pos};
+                size_t en1 {st1};
+                size_t en2 {st2};
+                while (it != alignment.end()) {
+                    const AlignedPosHash<htype> pos_hash { *it };
+                    if (pos_hash.is_match() != is_match)
+                        break;
+
+                    if (is_match) {
+                        en1 = pos_hash.left.value().pos;
+                        en2 = pos_hash.right.value().pos;
+                    } else {
+                        if (pos_hash.is_del()) {
+                            en2 = pos_hash.right.value().pos;
+                        } else {
+                            VERIFY(pos_hash.is_ins());
+                            en1 = pos_hash.left.value().pos;
+                        }
+                    }
+                    ++it;
+                }
+                blocks.push_back({st1, st2, en1, en2, is_match});
+            }
+            if (blocks.size() % 2 == 1) {
+                blocks.emplace_back();
+            }
+            return blocks;
+        }
+
+        template<typename htype>
+        AlignmentBlocks alignment2blocks(const KmerAlignment<htype> & alignment, size_t tol_gap) {
+            const AlignmentBlocks blocks = compress_alignment(alignment);
+
+            auto it = blocks.cbegin();
+            if (not it->is_match) {
+                ++it;
+            }
+
+            VERIFY(it->is_match);
+
+            AlignmentBlocks merged_blocks;
+
+            size_t st1 = it->st1;
+            size_t st2 = it->st2;
+            size_t en1 {0};
+            size_t en2 {0};
+            bool last_add { false };
+            for (auto it0 { it++ }; it != blocks.end(); ++it, ++it0, ++it, ++it0) {
+                VERIFY(it0->is_match);
+                if (last_add) {
+                    st1 = it0->st1;
+                    st2 = it0->st2;
+                }
+                last_add = false;
+                en1 = it0->en1;
+                en2 = it0->en2;
+                if (std::max(it->en1 - it->st1, it->en2 - it->st2) > tol_gap) {
+                    merged_blocks.push_back({st1, st2, en1, en2, true});
+                    st1 = en1;
+                    st2 = en2;
+                    last_add = true;
+                }
+            }
+            if (not last_add) {
+                merged_blocks.push_back({st1, st2, en1, en2, true});
+            }
+            return merged_blocks;
+        }
     }
 
     template <typename htype>
     void tandem_align(const std::experimental::filesystem::path & first_path,
                       const std::experimental::filesystem::path & second_path,
-                      const size_t k, const size_t max_rare_freq,
+                      const size_t k, const size_t max_rare_freq, const size_t tol_gap,
                       const std::experimental::filesystem::path & outdir,
                       logging::Logger & logger,
                       const size_t base = 239) {
@@ -211,14 +317,25 @@ namespace tandem_aligner {
         logger.info() << "|pos hash vec 2| " << pos_hash_vec_2.size() << "\n";
 
         logger.info() << "Alignment computation started\n";
-        details::KmerAlignment<htype> alignment = details::glob_align(pos_hash_vec_1, pos_hash_vec_2);
+        const details::KmerAlignment<htype> alignment = details::glob_align(pos_hash_vec_1, pos_hash_vec_2);
         logger.info() << "Alignment computation finished\n";
 
         std::ofstream aligner_output;
         const std::experimental::filesystem::path aligner_fn { outdir / "glob_alignment.tsv" };
         aligner_output.open(aligner_fn);
         details::output_alignment<htype>(alignment, aligner_output);
+        aligner_output.close();
         logger.info() << "Alignment exported to " << aligner_fn << "\n";
+
+        const details::AlignmentBlocks blocks = details::alignment2blocks(alignment, tol_gap);
+        std::ofstream blocks_output;
+        const std::experimental::filesystem::path blocks_fn { outdir / "blocks.tsv" };
+        blocks_output.open(blocks_fn);
+        for (const auto & block : blocks) {
+            blocks_output << block;
+        }
+        blocks_output.close();
+        logger.info() << "Matching blocks exported to " << blocks_fn << "\n";
     }
 
 } // End namespace tandem_aligner
