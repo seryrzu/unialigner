@@ -50,8 +50,8 @@ def cigar2blocks(cigar, tol_gap, outfn=None):
     i = 0
     st1, st2 = 0, 0
     if compr_cigar[0].status != '=':
-        st1 += compr_cigar.len1
-        st2 += compr_cigar.len2
+        st1 += compr_cigar[0].len1
+        st2 += compr_cigar[0].len2
         i += 1
 
     if len(compr_cigar[i:]) % 2 == 1:
