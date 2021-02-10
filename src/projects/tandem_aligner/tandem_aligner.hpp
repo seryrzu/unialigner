@@ -186,11 +186,15 @@ namespace tandem_aligner {
         }
 
         struct AlignmentBlock {
-            size_t st1 {0};
-            size_t st2 {0};
-            size_t en1 {0};
-            size_t en2 {0};
+            size_t st1 {std::numeric_limits<size_t>::max()};
+            size_t st2 {std::numeric_limits<size_t>::max()};
+            size_t en1 {std::numeric_limits<size_t>::max()};
+            size_t en2 {std::numeric_limits<size_t>::max()};
             bool is_match {false};
+
+            size_t get_size() const {
+                return std::max(en1 - st1, en2 - st2);
+            }
         };
 
         std::ostream & operator << (std::ostream & os, const AlignmentBlock & block) {
@@ -206,8 +210,8 @@ namespace tandem_aligner {
             auto it = alignment.cbegin();
             while (it != alignment.end()) {
                 bool is_match = it->is_match();
-                size_t st1 {it->left.value_or(PosHash<htype>()).pos};
-                size_t st2 {it->right.value_or(PosHash<htype>()).pos};
+                size_t st1 = it->left. has_value() ? it->left. value().pos : std::numeric_limits<size_t>::max();
+                size_t st2 = it->right.has_value() ? it->right.value().pos : std::numeric_limits<size_t>::max();
                 size_t en1 {st1};
                 size_t en2 {st2};
                 while (it != alignment.end()) {
@@ -221,9 +225,11 @@ namespace tandem_aligner {
                     } else {
                         if (pos_hash.is_del()) {
                             en2 = pos_hash.right.value().pos;
+                            st2 = std::min(st2, en2);
                         } else {
                             VERIFY(pos_hash.is_ins());
                             en1 = pos_hash.left.value().pos;
+                            st1 = std::min(en1, st1);
                         }
                     }
                     ++it;
@@ -236,11 +242,14 @@ namespace tandem_aligner {
             if (not blocks.empty() and not blocks.front().is_match) {
                 blocks.erase(blocks.begin());
             }
+            for (const auto & block : blocks) {
+                std::cout << block.is_match << " \t " << block;
+            }
             return blocks;
         }
 
         template<typename htype>
-        AlignmentBlocks alignment2blocks(const KmerAlignment<htype> & alignment, size_t tol_gap) {
+        AlignmentBlocks alignment2blocks(const KmerAlignment<htype> & alignment, size_t tol_gap, size_t k) {
             const AlignmentBlocks blocks = compress_alignment(alignment);
 
             AlignmentBlocks merged_blocks;
@@ -265,15 +274,18 @@ namespace tandem_aligner {
                 last_add = false;
                 en1 = it0->en1;
                 en2 = it0->en2;
-                if (std::max(it->en1 - it->st1, it->en2 - it->st2) > tol_gap) {
+                if (it->get_size() > tol_gap) {
                     merged_blocks.push_back({st1, st2, en1, en2, true});
-                    st1 = en1;
-                    st2 = en2;
                     last_add = true;
                 }
             }
             if (not last_add) {
                 merged_blocks.push_back({st1, st2, en1, en2, true});
+            }
+
+            for (AlignmentBlock & block : merged_blocks) {
+                block.en1 += k;
+                block.en2 += k;
             }
             return merged_blocks;
         }
@@ -290,13 +302,15 @@ namespace tandem_aligner {
         std::vector<Contig> first_vec { first_reader.readAllContigs() };
         VERIFY(first_vec.size() == 1);
         Contig first { std::move(first_vec[0]) } ;
-        logger.info() << "First length " << first.seq.size() << ", name " << first.id << " from " << first_path << std::endl;
+        logger.info() << "First length " << first.seq.size() << ", name " << first.id
+                      << " from " << first_path << std::endl;
 
         io::SeqReader second_reader(second_path);
         std::vector<Contig> second_vec { second_reader.readAllContigs() };
         VERIFY(second_vec.size() == 1);
         Contig second { std::move(second_vec[0]) } ;
-        logger.info() << "Second length " << second.seq.size() << ", name " << second.id << " from " << second_path << std::endl;
+        logger.info() << "Second length " << second.seq.size() << ", name " << second.id
+                      << " from " << second_path << std::endl;
 
         const RollingHash<htype> hasher(k, base);
 
@@ -330,7 +344,7 @@ namespace tandem_aligner {
         aligner_output.close();
         logger.info() << "Alignment exported to " << aligner_fn << "\n";
 
-        const details::AlignmentBlocks blocks = details::alignment2blocks(alignment, tol_gap);
+        const details::AlignmentBlocks blocks = details::alignment2blocks(alignment, tol_gap, k);
         std::ofstream blocks_output;
         const std::experimental::filesystem::path blocks_fn { outdir / "blocks.tsv" };
         blocks_output.open(blocks_fn);
