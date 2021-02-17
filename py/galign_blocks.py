@@ -43,9 +43,18 @@ def get_compr_cigar(parsed_cigar):
     return compr_cigar
 
 
-def cigar2blocks(cigar, tol_gap, outfn=None):
+def cigar2blocks(cigar, tol_gap, logger, outfn=None,
+                 min_large_unmatched_block=10):
     parsed_cigar, _ = parse_cigar(cigar)
+
     compr_cigar = get_compr_cigar(parsed_cigar)
+    logger.info("Large (size > {min_large_unmatched_block}) unmatched blocks:")
+    for block in compr_cigar:
+        if block.status != '=' and \
+                max(block.len1, block.len2) > min_large_unmatched_block:
+            logger.info(block)
+    logger.info("End large unmatched blocks:")
+
 
     i = 0
     st1, st2 = 0, 0
@@ -107,8 +116,16 @@ def main():
     edlib_cmd = f"edlib-aligner -p -f CIG_EXT {params.s1} {params.s2}".split()
     edlib_proc = subprocess.Popen(edlib_cmd, stdout=subprocess.PIPE)
     edlib_output = edlib_proc.stdout.read().decode('utf-8').split('\n')
+    logger.info('Edlib results')
+    for line in edlib_output:
+        logger.info(line)
+
     cigar = edlib_output[-4]
+    with open(os.path.join(params.outdir, 'cigar.txt'), 'w') as f:
+        print(cigar, file=f)
+
     cigar2blocks(cigar, params.tol_gap,
+                 logger=logger,
                  outfn=os.path.join(params.outdir, 'blocks.tsv'))
 
 
