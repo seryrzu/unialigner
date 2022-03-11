@@ -13,7 +13,7 @@
 #include <sequences/contigs.hpp>
 #include <sequences/seqio.hpp>
 
-#include "rolling_hash.hpp"
+#include "rolling_hash/rolling_hash.hpp"
 
 namespace tandem_aligner {
 

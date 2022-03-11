@@ -79,68 +79,84 @@ template<typename htype>
 class KWH {
 private:
     KWH(const RollingHash<htype> & _hasher, const Sequence &_seq, size_t _pos, htype _fhash, htype _rhash):
-            hasher(_hasher), seq(_seq), pos(_pos), fhash(_fhash), rhash(_rhash) {
+            hasher(&_hasher), seq(_seq), pos(_pos), fhash(_fhash), rhash(_rhash) {
     }
 
     htype fhash;
     htype rhash;
     Sequence seq;
 public:
-    const RollingHash<htype> & hasher;
+    const RollingHash<htype> * hasher;
     size_t pos;
 
     KWH(const RollingHash<htype> & _hasher, const Sequence &_seq, size_t _pos):
-            hasher(_hasher), seq(_seq), pos(_pos), fhash(_hasher.hash(_seq, _pos)),
+            hasher(&_hasher), seq(_seq), pos(_pos), fhash(_hasher.hash(_seq, _pos)),
             rhash(_hasher.hash(!_seq, _seq.size() - _pos - _hasher.k)) {
     }
 
     KWH(const KWH &other) = default;
 
     Sequence getSeq() const {
-        return seq.Subseq(pos, pos + hasher.k);
+        return seq.Subseq(pos, pos + hasher->k);
     }
 
     KWH<htype> operator!() const {
-        return KWH<htype>(hasher, !seq, seq.size() - pos - hasher.k, rhash, fhash);
+        return KWH<htype>(hasher, !seq, seq.size() - pos - hasher->k, rhash, fhash);
+    }
+
+    htype Fhash() const {
+        return fhash;
     }
 
     htype hash() const {
         return std::min(fhash, rhash);
     }
 
-    htype extendRight(unsigned char c) const {
-        return std::min(hasher.extendRight(seq, pos, fhash, c), hasher.extendLeft(!seq, seq.size() - pos - hasher.k, rhash, c ^ 3u));
-    }
+    // htype extendRight(unsigned char c) const {
+    //     return std::min(hasher.extendRight(seq, pos, fhash, c), hasher.extendLeft(!seq, seq.size() - pos - hasher.k, rhash, c ^ 3u));
+    // }
 
-    htype extendLeft(unsigned char c) const {
-        return std::min(hasher.extendLeft(seq, pos, fhash, c), hasher.extendRight(!seq, seq.size() - pos - hasher.k, rhash, c ^ 3u));
+    // htype extendLeft(unsigned char c) const {
+    //     return std::min(hasher.extendLeft(seq, pos, fhash, c), hasher.extendRight(!seq, seq.size() - pos - hasher.k, rhash, c ^ 3u));
+    // }
+
+    // KWH extendRight() const {
+    //     return {{hasher.k + 1, hasher.hbase}, seq, pos,
+    //             hasher.extendRight(seq, pos, fhash, seq[pos + hasher.k]),
+    //             hasher.extendLeft(!seq, seq.size() - pos - hasher.k, rhash, seq[pos + hasher.k] ^ 3u)};
+    // }
+
+    KWH extendLeft(const RollingHash<htype> &new_hasher) const {
+        return {new_hasher, seq, pos - 1,
+                hasher->extendLeft(seq, pos, fhash, seq[pos - 1]),
+                hasher->extendRight(!seq, seq.size() - pos - hasher->k, rhash, seq[pos - 1] ^ 3u)};
     }
 
     KWH next() const {
-        return {hasher, seq, pos + 1, hasher.next(seq, pos, fhash), hasher.prev(!seq, seq.size() - pos - hasher.k, rhash)};
+        return {*hasher, seq, pos + 1, hasher->next(seq, pos, fhash), hasher->prev(!seq, seq.size() - pos - hasher->k, rhash)};
     }
 
     KWH prev() const {
-        return {hasher, seq, pos - 1, hasher.prev(seq, pos, fhash), hasher.next(!seq, seq.size() - pos - hasher.k, rhash)};
+        return {*hasher, seq, pos - 1, hasher->prev(seq, pos, fhash), hasher->next(!seq, seq.size() - pos - hasher->k, rhash)};
     }
 
     bool hasNext() const {
-        return hasher.hasNext(seq, pos);
+        return hasher->hasNext(seq, pos);
     }
 
     bool hasPrev() const {
-        return hasher.hasPrev(seq, pos);
+        return hasher->hasPrev(seq, pos);
     }
 
-    KWH &operator=(const KWH &other) {
-        if(this == &other)
-            return *this;
-        seq = other.seq;
-        pos = other.pos;
-        fhash = other.fhash;
-        rhash = other.rhash;
-        return *this;
-    }
+    // KWH &operator=(const KWH &other) {
+    //     if(this == &other)
+    //         return *this;
+    //     seq = other.seq;
+    //     pos = other.pos;
+    //     fhash = other.fhash;
+    //     rhash = other.rhash;
+    //     return *this;
+    // }
 
     bool isCanonical() const {
         return fhash < rhash;
