@@ -1,2 +1,3 @@
 add_subdirectory(tandem_aligner)
+add_subdirectory(dotplot)
 add_subdirectory(cubic_naive)

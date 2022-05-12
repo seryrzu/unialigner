@@ -1,2 +1,4 @@
 add_subdirectory(common)
 add_subdirectory(sequences)
+add_subdirectory(suffix_array)
+add_subdirectory(min_queue)
