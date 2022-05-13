@@ -11,8 +11,8 @@
 #include "dotplot.hpp"
 
 int main(int argc, char **argv) {
-    CLParser parser{{"output-dir=", "first=", "second="}, {},
-                    {"o=output-dir", "f=first", "s=second"}};
+    CLParser parser{{"output-dir=", "first=", "second=", "freq=1"}, {},
+                    {"o=output-dir", "f=first", "s=second", "f=freq"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
         std::cerr << "Incorrect parameters" << std::endl;
@@ -42,7 +42,9 @@ int main(int argc, char **argv) {
     const std::experimental::filesystem::path second_path =
         std::experimental::filesystem::canonical(parser.getValue("second"));
 
-    dotplot::DotPlotConstructor(logger, output_dir)
+    int max_freq = std::stoi(parser.getValue("freq"));
+
+    dotplot::DotPlotConstructor(logger, output_dir, max_freq)
         .Construct(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";
