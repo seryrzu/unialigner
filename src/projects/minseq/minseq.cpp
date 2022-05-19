@@ -8,7 +8,7 @@
 #include <common/cl_parser.hpp>
 #include <common/logging.hpp>
 
-#include "dotplot.hpp"
+#include "minseq.hpp"
 
 int main(int argc, char **argv) {
     CLParser parser{{"output-dir=", "first=", "second=", "freq=1"}, {},
@@ -44,8 +44,8 @@ int main(int argc, char **argv) {
 
     int max_freq = std::stoi(parser.getValue("freq"));
 
-    dotplot::DotPlotConstructor(logger, output_dir, max_freq)
-        .Construct(first_path, second_path);
+    minseq::MinMaxAligner(logger, output_dir, max_freq)
+        .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";
     return 0;
