@@ -50,6 +50,19 @@ void Cigar::extend(const size_t length, const CigarMode mode) {
     return length;
 }
 
+[[nodiscard]] double Cigar::GetMutability() const {
+    double nins{0}, ndel{0}, ntotal{0};
+    for (const CigarFragment& fragment : cigar_vec) {
+        ntotal += fragment.length;
+        if (fragment.mode == CigarMode::D) {
+            ndel += fragment.length;
+        } else if (fragment.mode == CigarMode::I) {
+            nins += fragment.length;
+        }
+    }
+    return (ndel + nins) / (2 * ntotal);
+}
+
 void Cigar::AssertValidity(const std::string &target,
                            const std::string &query) const {
     VERIFY(target.size() == TargetLength());

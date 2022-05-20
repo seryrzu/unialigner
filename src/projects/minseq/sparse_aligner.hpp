@@ -72,7 +72,7 @@ class SparseAligner {
                 argmax_score = i;
             }
         }
-        logger.info() << max_score << " " << argmax_score << "\n";
+        logger.info() << "Max score " << max_score << "\n";
 
         std::vector<MinFreqInterval> alignment_vec;
         while (argmax_score!=-1) {
@@ -80,7 +80,6 @@ class SparseAligner {
             argmax_score = backtracks[argmax_score];
         }
         std::reverse(alignment_vec.begin(), alignment_vec.end());
-        logger.info() << alignment_vec.size() << "\n";
 
         return alignment_vec;
     }
@@ -123,19 +122,83 @@ class SparseAligner {
         return cigar;
     }
 
+    [[nodiscard]] std::pair<double, double>
+    GetUncovered(const Cigar &cigar,
+                 const std::vector<MinFreqInterval> &intervals,
+                 const std::string &fst, const std::string &snd) const {
+        std::vector<int> fst_cov(fst.size()), snd_cov(snd.size());
+        for (const MinFreqInterval &interval : intervals) {
+            fst_cov[interval.fst_coord]++;
+            fst_cov[interval.fst_coord + interval.len]--;
+            snd_cov[interval.snd_coord]++;
+            snd_cov[interval.snd_coord + interval.len]--;
+        }
+
+        {
+            int i = 0, j = 0;
+            for (const CigarFragment &fragment : cigar) {
+                if (fragment.mode == CigarMode::M) {
+                    fst_cov[i]++, snd_cov[j]++;
+                    fst_cov[i + fragment.length]--;
+                    snd_cov[j + fragment.length]--;
+                    i += fragment.length, j += fragment.length;
+                } else if (fragment.mode == CigarMode::I) {
+                    j += fragment.length;
+                } else {
+                    VERIFY(fragment.mode == CigarMode::D);
+                    i += fragment.length;
+                }
+            }
+        }
+
+        for (int i = 1; i < fst_cov.size(); ++i)
+            fst_cov[i] += fst_cov[i - 1];
+        for (int j = 1; j < snd_cov.size(); ++j)
+            snd_cov[j] += snd_cov[j - 1];
+
+        double fst_uncovered{0}, snd_uncovered{0};
+        auto extract_uncovered = [](const std::vector<int> &cov,
+                                    double &uncovered) {
+          for (int i = 0; i < cov.size();) {
+              if (cov[i]==0) {
+                  int j = i + 1;
+                  while (j < cov.size() and cov[j]==0) {
+                      j++;
+                  }
+                  uncovered += j - i;
+                  i = j + 1;
+              } else {
+                  i++;
+              }
+          }
+          uncovered /= cov.size();
+        };
+        extract_uncovered(fst_cov, fst_uncovered);
+        extract_uncovered(snd_cov, snd_uncovered);
+        return {fst_uncovered, snd_uncovered};
+    }
+
  public:
     explicit SparseAligner(logging::Logger &logger) : logger{logger} {}
 
     Cigar Align(const MinIntervalCollections &cols,
                 const std::string &fst, const std::string &snd) {
         std::vector<MinFreqInterval> vec = Cols2Vec(cols);
-        logger.info() << vec.size() << "\n";
+        logger.info() << "Running quadratic on " << vec.size() << "...\n";
         std::sort(vec.begin(), vec.end());
-        logger.info() << vec.size() << "\n";
 
         const std::vector<MinFreqInterval> alignment_vec = GetAlignmentVec(vec);
 
-        return AlignmentVec2Cigar(std::move(alignment_vec), fst, snd);
+        Cigar cigar = AlignmentVec2Cigar(alignment_vec, fst, snd);
+
+        const auto[fst_uncovered, snd_uncovered] =
+        GetUncovered(cigar, vec, fst, snd);
+        logger.info() << "Uncovered fst = " << fst_uncovered <<
+                      "; snd = " << snd_uncovered << "\n";
+
+        double mutability = cigar.GetMutability();
+        logger.info() << "Mutability = " << mutability << "\n";
+        return cigar;
     }
 };
 
