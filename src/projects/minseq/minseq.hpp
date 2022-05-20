@@ -1,5 +1,3 @@
-#include <utility>
-
 //
 // Created by Andrey Bzikadze on 05/05/22.
 //
@@ -11,10 +9,11 @@
 #include <sequences/seqio.hpp>
 #include "lcp_interval.hpp"
 #include "min_interval.hpp"
+#include "sparse_aligner.hpp"
 
 namespace minseq {
 
-class MinMaxAligner {
+class MinSeqAligner {
     logging::Logger &logger;
     int max_freq{1};
     const std::experimental::filesystem::path output_dir;
@@ -38,7 +37,7 @@ class MinMaxAligner {
     }
 
  public:
-    MinMaxAligner(logging::Logger &logger,
+    MinSeqAligner(logging::Logger &logger,
                   std::experimental::filesystem::path output_dir,
                   const int max_freq) :
         logger{logger}, output_dir{std::move(output_dir)}, max_freq{max_freq} {}
@@ -63,6 +62,12 @@ class MinMaxAligner {
             int_col = segment_finder.Find(lcp, first.size());
         std::ofstream os(output_dir/"shortest_matches.tsv");
         os << int_col;
+
+        logger.info() << "Aligning...\n";
+        const Cigar cigar = SparseAligner(logger).Align(int_col, first, second);
+        std::ofstream cigar_os(output_dir/"cigar.txt");
+        cigar_os << cigar;
+        logger.info() << "Cigar exported\n";
     }
 };
 

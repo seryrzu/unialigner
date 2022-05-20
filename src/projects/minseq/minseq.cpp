@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
     int max_freq = std::stoi(parser.getValue("freq"));
 
-    minseq::MinMaxAligner(logger, output_dir, max_freq)
+    minseq::MinSeqAligner(logger, output_dir, max_freq)
         .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";
