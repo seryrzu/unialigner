@@ -2,6 +2,7 @@ from collections import defaultdict
 import argparse
 import os
 import sys
+from itertools import groupby
 import pandas as pd
 import numpy as np
 
@@ -19,9 +20,10 @@ SCRIPT_FN = os.path.realpath(__file__)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--shortest-matches", required=True)
+    parser.add_argument("-o", "--outdir", required=True)
     parser.add_argument("--asm1-name", default="")
     parser.add_argument("--asm2-name", default="")
-    parser.add_argument("-o", "--outdir", required=True)
+    parser.add_argument("--min-length", default=20, type=int)
     params = parser.parse_args()
 
     params.outdir = expandpath(params.outdir)
@@ -29,27 +31,11 @@ def parse_args():
     return params
 
 
-def main():
-    params = parse_args()
-
-    logfn = os.path.join(params.outdir, 'dotplot.log')
-    global logger
-    logger = get_logger(logfn,
-                        logger_name='dotplot')
-    logger.info(f'Constructing dotplot with {SCRIPT_FN} started')
-    logger.info('cmd: {}'.format(sys.argv))
-    logger.info('git hash: {}'.format(get_git_revision_short_hash()))
-
-    asm1_name, asm2_name = "", ""
-    if params.asm1_name != "":
-        asm1_name = params.asm1_name
-    if params.asm2_name != "":
-        asm2_name = params.asm2_name
-
-    df = pd.read_csv(params.shortest_matches, header=0, sep='\t')
-
+def get_intervals(params, df):
     Xs, Ys = defaultdict(list), defaultdict(list)
     for i, row in df.iterrows():
+        if row.Length < params.min_length:
+            continue;
         freqs = (row.FstFreq, row.SndFreq)
         for Xst in str(row.FstStarts).split(','):
             Xst = int(Xst)
@@ -61,17 +47,35 @@ def main():
                 Ys[freqs].append(Yst + row.Length)
                 Xs[freqs].append(np.nan)
                 Ys[freqs].append(np.nan)
+    return Xs, Ys
 
-    layout = go.Layout(
-        title='Dotplot',
-        xaxis_title=asm1_name,
-        yaxis_title=asm2_name
-    )
 
-    n_colors = len(Xs)
-    colors = px.colors.sample_colorscale("turbo", [n/(n_colors - 1) * 0.8 for n in range(n_colors)])
+def parse_cigar(cigar_fn):
+    X, Y = [0], [0]
+    with open(cigar_fn) as f:
+        cigar = f.readline().strip()
+    cig_iter = groupby(cigar, lambda chr: chr.isdigit())
+    for _, length_digits in cig_iter:
+        length = int(''.join(length_digits))
+        op = next(next(cig_iter)[1])
+        if op == 'M':
+            X.append(X[-1] + length)
+            Y.append(Y[-1] + length)
+        elif op == 'D':
+            X.append(X[-1] + length)
+            Y.append(Y[-1])
+        else:
+            assert op == 'I'
+            X.append(X[-1])
+            Y.append(Y[-1] + length)
+    return X, Y
 
-    traces = []
+
+def get_traces(al_X, al_Y, Xs, Ys, colors):
+    traces = [go.Scattergl(x=al_X, y=al_Y, mode='lines', name='Alignment', legendgroup='Alignment',
+                           marker=dict(size=2),
+                           line=dict(color=colors[0], width=4),
+                           showlegend=True)]
     freqs = list(Xs.keys())
     for i, freq in enumerate(freqs[::-1]):
         X = Xs[freq]
@@ -81,16 +85,36 @@ def main():
                                    mode='markers+lines',
                                    name=str(freq),
                                    legendgroup=str(freq),
-                                   line=dict(color=colors[i]),
+                                   marker=dict(size=2),
+                                   line=dict(color=colors[1+i], width=1),
                                    showlegend=True))
+    return traces
+
+
+def main():
+    params = parse_args()
+
+    logfn = os.path.join(params.outdir, 'minseq.log')
+    global logger
+    logger = get_logger(logfn,
+                        logger_name='minseq')
+    logger.info(f'Constructing dotplot with {SCRIPT_FN} started')
+    logger.info('cmd: {}'.format(sys.argv))
+    logger.info('git hash: {}'.format(get_git_revision_short_hash()))
+
+    df = pd.read_csv(os.path.join(params.shortest_matches, 'shortest_matches.tsv'), header=0, sep='\t')
+
+    Xs, Ys = get_intervals(params, df)
+    al_X, al_Y = parse_cigar(os.path.join(params.shortest_matches, 'cigar.txt'))
+
+    n_colors = 1 + len(Xs)
+    colors = px.colors.sample_colorscale("turbo", [n/(n_colors - 1) * 0.8 for n in range(n_colors)])
+
+    traces = get_traces(al_X, al_Y, Xs, Ys, colors)
+
+    layout = go.Layout( title='Dotplot', xaxis_title=params.asm1_name, yaxis_title=params.asm2_name )
     fig = go.Figure(traces, layout)
-
-    # Plot the chart
-    # fig = go.Figure([data], layout)
-
-    # pyo.plot(fig, filename=os.path.join(params.outdir, 'dotplot.html'), auto_open=False)
     fig.write_html(os.path.join(params.outdir, 'dotplot.html'))
-    # fig.write_image(os.path.join(params.outdir, 'dotplot.pdf'))
 
 
 if __name__ == "__main__":
