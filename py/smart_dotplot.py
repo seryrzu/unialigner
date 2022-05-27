@@ -1,18 +1,16 @@
-from collections import defaultdict
 import argparse
-import os
-import sys
-from itertools import groupby
-import pandas as pd
 import numpy as np
-
-import plotly.graph_objs as go
+import os
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objs as go
+import sys
+from collections import defaultdict
+from itertools import groupby
 
 from standard_logger import get_logger
-from utils.os_utils import expandpath, smart_makedirs
 from utils.git import get_git_revision_short_hash
-
+from utils.os_utils import expandpath, smart_makedirs
 
 SCRIPT_FN = os.path.realpath(__file__)
 
@@ -24,6 +22,7 @@ def parse_args():
     parser.add_argument("--asm1-name", default="")
     parser.add_argument("--asm2-name", default="")
     parser.add_argument("--min-length", default=20, type=int)
+    parser.add_argument("--edlib", default="")
     params = parser.parse_args()
 
     params.outdir = expandpath(params.outdir)
@@ -35,7 +34,7 @@ def get_intervals(params, df):
     Xs, Ys = defaultdict(list), defaultdict(list)
     for i, row in df.iterrows():
         if row.Length < params.min_length:
-            continue;
+            continue
         freqs = (row.FstFreq, row.SndFreq)
         for Xst in str(row.FstStarts).split(','):
             Xst = int(Xst)
@@ -71,11 +70,16 @@ def parse_cigar(cigar_fn):
     return X, Y
 
 
-def get_traces(al_X, al_Y, Xs, Ys, colors):
+def get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys, colors):
     traces = [go.Scattergl(x=al_X, y=al_Y, mode='lines', name='Alignment', legendgroup='Alignment',
                            marker=dict(size=2),
                            line=dict(color=colors[0], width=4),
                            showlegend=True)]
+    if edlib_Y is not None:
+        traces.append(go.Scattergl(x=edlib_X, y=edlib_Y, mode='lines', name='Edlib Alignment', legendgroup='Edlib Alignment',
+                                   marker=dict(size=2),
+                                   line=dict(color='red', width=4),
+                                   showlegend=True))
     freqs = list(Xs.keys())
     for i, freq in enumerate(freqs[::-1]):
         X = Xs[freq]
@@ -86,7 +90,7 @@ def get_traces(al_X, al_Y, Xs, Ys, colors):
                                    name=str(freq),
                                    legendgroup=str(freq),
                                    marker=dict(size=2),
-                                   line=dict(color=colors[1+i], width=1),
+                                   line=dict(color=colors[1 + i], width=1),
                                    showlegend=True))
     return traces
 
@@ -106,13 +110,17 @@ def main():
 
     Xs, Ys = get_intervals(params, df)
     al_X, al_Y = parse_cigar(os.path.join(params.shortest_matches, 'cigar.txt'))
+    has_edlib = params.edlib != ''
+    edlib_X, edlib_Y = None, None
+    if has_edlib:
+        edlib_X, edlib_Y = parse_cigar(os.path.join(params.shortest_matches, params.edlib))
 
     n_colors = 1 + len(Xs)
-    colors = px.colors.sample_colorscale("turbo", [n/(n_colors - 1) * 0.8 for n in range(n_colors)])
+    colors = px.colors.sample_colorscale("turbo", [n / (n_colors - 1) * 0.8 for n in range(n_colors)])
 
-    traces = get_traces(al_X, al_Y, Xs, Ys, colors)
+    traces = get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys, colors)
 
-    layout = go.Layout( title='Dotplot', xaxis_title=params.asm1_name, yaxis_title=params.asm2_name )
+    layout = go.Layout(title='Dotplot', xaxis_title=params.asm1_name, yaxis_title=params.asm2_name)
     fig = go.Figure(traces, layout)
     fig.write_html(os.path.join(params.outdir, 'dotplot.html'))
 
