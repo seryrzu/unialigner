@@ -126,7 +126,7 @@ class SparseAligner {
     GetUncovered(const Cigar &cigar,
                  const std::vector<MinFreqInterval> &intervals,
                  const std::string &fst, const std::string &snd) const {
-        std::vector<int> fst_cov(fst.size()), snd_cov(snd.size());
+        std::vector<int> fst_cov(fst.size() + 1), snd_cov(snd.size() + 1);
         for (const MinFreqInterval &interval : intervals) {
             fst_cov[interval.fst_coord]++;
             fst_cov[interval.fst_coord + interval.len]--;
