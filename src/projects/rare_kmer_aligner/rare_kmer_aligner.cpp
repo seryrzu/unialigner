@@ -4,7 +4,7 @@
 #include <common/cl_parser.hpp>
 #include <common/logging.hpp>
 
-#include "tandem_aligner.hpp"
+#include "rare_kmer_aligner.hpp"
 
 int main(int argc, char ** argv) {
     CLParser parser {{"output-dir=", "first=", "second=",
@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
 
     const std::experimental::filesystem::path output_dir{parser.getValue("output-dir")};
     ensure_dir_existance(output_dir);
-    logging::LoggerStorage ls{output_dir, "tandem_aligner"};
+    logging::LoggerStorage ls{output_dir, "rare_kmer_aligner"};
     logging::Logger logger;
     logger.addLogFile(ls.newLoggerFile());
 

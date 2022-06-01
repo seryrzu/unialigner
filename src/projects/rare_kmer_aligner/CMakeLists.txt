@@ -1,0 +1,7 @@
+project(rare_kmer_aligner)
+
+add_library(rare_kmer_aligner_library STATIC rare_kmer_aligner.cpp rare_kmer_aligner.hpp)
+
+add_executable(rare_kmer_aligner rare_kmer_aligner.cpp)
+
+target_link_libraries(rare_kmer_aligner rare_kmer_aligner_library common sequence m)
