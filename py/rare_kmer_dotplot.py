@@ -3,6 +3,7 @@ from collections import defaultdict
 import os
 import sys
 
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -54,9 +55,12 @@ def get_kmer2coords(s, kmers):
 def get_pairs(kmers2coords1, kmers2coords2):
     pairs = []
     for kmer, coords1 in kmers2coords1.items():
+        k = len(kmer)
         for coord2 in kmers2coords2[kmer]:
             for coord1 in coords1:
                 pairs.append((coord1, coord2))
+                pairs.append((coord1 + k, coord2 + k))
+                pairs.append((np.nan, np.nan))
     return pairs
 
 
@@ -95,9 +99,11 @@ def main():
     plt.figure(figsize=(5, 5), dpi=200)
     plt.plot([pair[0] for pair in pairs],
              [pair[1] for pair in pairs],
-             marker=".", ms=0.5, alpha=1, linestyle="", color='black')
+             marker=".", ms=0.5, alpha=1, color='black')
     plt.xlabel(asm1_name)
     plt.ylabel(asm2_name)
+    plt.xlim(0)
+    plt.ylim(0)
     plt.grid(b=True, which='major', axis='both')
     plt.xticks(rotation=30)
     plt.title(f'k={params.k}, MaxRareCount={params.rare}')
