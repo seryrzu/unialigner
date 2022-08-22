@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument("-o", "--outdir", required=True)
     parser.add_argument("-k", type=int, default=7)
     parser.add_argument("--rare", type=int, default=1)
+    parser.add_argument("--alignment", default="")
     params = parser.parse_args()
 
     params.asm1 = expandpath(params.asm1)
@@ -38,6 +39,9 @@ def parse_args():
         sys.exit(1)
 
     params.outdir = expandpath(params.outdir)
+    if len(params.alignment):
+        params.alignment = expandpath(params.alignment)
+
     smart_makedirs(params.outdir)
     return params
 
@@ -64,6 +68,60 @@ def get_pairs(kmers2coords1, kmers2coords2):
     return pairs
 
 
+def get_alignment(filepath, k, asm1, asm2):
+    if len(filepath) == 0:
+        return None, None
+    raw_Xs, raw_Ys = [0], [0]
+    with open(filepath) as f:
+        for line in f:
+            x, y = line.strip().split()
+            if x != '-' and y != '-':
+                x, y = map(int, (x, y))
+                raw_Xs.append(x)
+                raw_Ys.append(y)
+
+    raw_Xs.append(len(asm1))
+    raw_Ys.append(len(asm2))
+    Xs, Ys = [0], [0]
+    for x, y in zip(raw_Xs, raw_Ys):
+        K = k
+        while (K and (Xs[-1] + K > x or Ys[-1] + K > y)):
+            K -= 1
+
+        while (Xs[-1] + K < x and
+               Ys[-1] + K < y and
+               asm1[Xs[-1] + K] == asm2[Ys[-1] + K]):
+            K += 1
+
+        while x > Xs[-1] + K and y > Ys[-1] + K and asm1[x - 1] == asm2[y - 1]:
+            x -= 1
+            y -= 1
+        assert Xs[-1] + K <= x
+        assert Ys[-1] + K <= y
+
+        Xs.append(Xs[-1] + K)
+        Ys.append(Ys[-1] + K)
+        Xs.append(x)
+        Ys.append(Ys[-1])
+        Xs.append(x)
+        Ys.append(y)
+
+    filt_X, filt_Y = [Xs[0]], [Ys[0]]
+    for x, y, nx, ny in zip(Xs[1:-1], Ys[1:-1], Xs[2:], Ys[2:]):
+        if (x - y != nx - ny):
+            filt_X.append(x)
+            filt_Y.append(y)
+            filt_X.append(nx)
+            filt_Y.append(ny)
+    filt_X.append(Xs[-1])
+    filt_Y.append(Ys[-1])
+    print('Alignment')
+    for x, y in zip(filt_X, filt_Y):
+        print(x, y)
+
+    return filt_X, filt_Y
+
+
 def main():
     params = parse_args()
 
@@ -87,6 +145,7 @@ def main():
     if params.asm2_name != "":
         asm2_name = params.asm2_name
 
+    X_al, Y_al = get_alignment(params.alignment, params.k, asm1, asm2)
 
     rare_kmers1 = get_rare_kmers(asm1, params.k, params.rare)
     rare_kmers2 = get_rare_kmers(asm2, params.k, params.rare)
@@ -100,6 +159,8 @@ def main():
     plt.plot([pair[0] for pair in pairs],
              [pair[1] for pair in pairs],
              marker=".", ms=0.5, alpha=1, color='black')
+    if params.alignment != "":
+        plt.plot(X_al, Y_al, color='red')
     plt.xlabel(asm1_name)
     plt.ylabel(asm2_name)
     plt.xlim(0)
@@ -110,7 +171,6 @@ def main():
     outfn = os.path.join(params.outdir, 'dotplot.png')
     plt.savefig(outfn, format='png', bbox_inches="tight")
     plt.close()
-
 
 
 if __name__ == "__main__":
