@@ -4,28 +4,30 @@
 
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <fstream>
+#include <list>
 
 namespace minseq {
 
-enum class CigarMode { M, I, D };
+enum class CigarMode { M, I, D, X };
 
 inline char cigar_mode2str(const CigarMode &fragment);
 
 struct CigarFragment {
-    size_t length{0};
+    int64_t length{0};
     CigarMode mode{};
 };
 
 class Cigar {
-    std::vector<CigarFragment> cigar_vec;
+    std::list<CigarFragment> cigar_vec;
 
  public:
     Cigar() = default;
 
     [[nodiscard]] bool empty() const { return cigar_vec.empty(); }
-    void extend(size_t length, CigarMode mode);
+    void extend(int64_t length, CigarMode mode);
 
     [[nodiscard]] size_t QueryLength() const;
     [[nodiscard]] size_t TargetLength() const;
@@ -51,6 +53,29 @@ class Cigar {
     [[nodiscard]] decltype(cigar_vec)::const_iterator cend() const {
         return cigar_vec.cend();
     }
+
+    [[nodiscard]] int64_t Size() const { return cigar_vec.size(); }
+
+    decltype(cigar_vec)::iterator
+    AssignInterval(Cigar other, decltype(cigar_vec)::iterator it) {
+        for (int i = 0; i < 2; ++i) {
+            if (it!=cigar_vec.end()) {
+                it = cigar_vec.erase(it);
+            }
+        }
+        return cigar_vec.insert(it, other.cigar_vec.begin(),
+                                other.cigar_vec.end());
+    }
+
+    decltype(cigar_vec)::iterator Erase(decltype(cigar_vec)::iterator pos) {
+        return cigar_vec.erase(pos);
+    }
+    decltype(cigar_vec)::iterator Insert(decltype(cigar_vec)::iterator pos,
+                                         const CigarFragment &value) {
+        return cigar_vec.insert(pos, value);
+    }
+
+    void Summary() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Cigar &cigar);

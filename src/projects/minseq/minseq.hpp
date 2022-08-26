@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <queue>
 #include <common/logging.hpp>
 #include <sequences/contigs.hpp>
 #include <sequences/seqio.hpp>
@@ -12,6 +13,12 @@
 #include "sparse_aligner.hpp"
 
 namespace minseq {
+
+struct MinSeqTask {
+    std::list<CigarFragment>::iterator cigar_it;
+    int64_t st1{0}, len1{0};
+    int64_t st2{0}, len2{0};
+};
 
 class MinSeqAligner {
     logging::Logger &logger;
@@ -36,6 +43,118 @@ class MinSeqAligner {
         return concat_stream.str();
     }
 
+    void RunTask(std::queue<MinSeqTask> &queue, Cigar &main_cigar,
+                 const std::string &first, const std::string &second,
+                 bool export_matches) const {
+        MinSeqTask task = queue.front();
+        std::cout << task.st1 << " " << task.len1 << " " <<
+                  task.st2 << " " << task.len2 << "\n";
+        const std::string first_substr = first.substr(task.st1, task.len1);
+        const std::string
+            second_substr = second.substr(task.st2, task.len2);
+        const std::string
+            concat = ConcatContigs(first_substr, second_substr);
+
+        logger.info() << "Building suffix array...\n";
+        const suffix_array::SuffixArray<std::string> suf_arr(concat);
+        logger.info() << "Building LCP array...\n";
+        const suffix_array::LCP<std::string> lcp(suf_arr);
+
+        MinIntervalFinder segment_finder(max_freq);
+        logger.info() << "Computing rare segments...\n";
+        const MinIntervalCollections
+            int_col = segment_finder.Find(lcp, task.len1);
+
+        if (export_matches) {
+            std::ofstream os(output_dir/"shortest_matches.tsv");
+            os << int_col;
+        }
+
+        logger.info() << "Aligning...\n";
+        Cigar cigar = SparseAligner(logger).Align(int_col,
+                                                  first_substr, second_substr);
+        auto main_cigar_it = main_cigar.AssignInterval(cigar, task.cigar_it);
+        logger.info() << "Finished alignment\n";
+        if (cigar.Size() > 2) {
+            int64_t i{task.st1}, j{task.st2};
+            auto it1 = cigar.cbegin(), it2 = ++cigar.cbegin();
+            for (; it2!=cigar.cend(); ++it1, ++it2, ++main_cigar_it) {
+                const CigarFragment &fragment1 = *it1;
+                const CigarFragment &fragment2 = *it2;
+                if ((fragment1.mode==CigarMode::D
+                    or fragment1.mode==CigarMode::I) and
+                    (fragment2.mode==CigarMode::D
+                        or fragment2.mode==CigarMode::I) and
+                    std::min(fragment1.length, fragment2.length) > 1) {
+                    if (fragment1.mode==CigarMode::D) {
+                        queue.push({main_cigar_it,
+                                    i, int64_t(fragment1.length),
+                                    j, int64_t(fragment2.length)});
+                    } else {
+                        queue.push({main_cigar_it,
+                                    i, int64_t(fragment2.length),
+                                    j, int64_t(fragment1.length)});
+                    }
+                }
+                if (fragment1.mode==CigarMode::M
+                    or fragment1.mode==CigarMode::X) {
+                    i += fragment1.length;
+                    j += fragment1.length;
+                    continue;
+                } else if (fragment1.mode==CigarMode::D) {
+                    i += fragment1.length;
+                } else {
+                    j += fragment1.length;
+                }
+            }
+        }
+    }
+
+    static void AssignMismatches(Cigar &cigar,
+                                 const std::string &first,
+                                 const std::string &second) {
+        if (cigar.Size() < 2)
+            return;
+        auto it1 = cigar.begin(), it2 = ++cigar.begin();
+        int i{0}, j{0};
+        for (; it2!=cigar.end(); ++it1, ++it2) {
+            int64_t length1{it1->length}, length2{it2->length};
+            CigarMode mode1{it1->mode}, mode2{it2->mode};
+            if ((mode1==CigarMode::D or mode1==CigarMode::I) and
+                (mode2==CigarMode::D or mode2==CigarMode::I) and
+                length1==length2) {
+                it2 = cigar.Erase(it2);
+                it1 = cigar.Erase(it1);
+                VERIFY(it1==it2);
+
+                int64_t run_len{1}, k{1};
+                bool is_eq{first[i]==second[j]};
+                i++, j++;
+                while (true) {
+                    if (is_eq!=(first[i]==second[j]) or k==length1) {
+                        it2 = cigar.Insert(it2,
+                                           {run_len, is_eq ? CigarMode::M
+                                                           : CigarMode::X});
+                        it1 = it2++;
+                        if (k == length1)
+                            break;
+                        is_eq = !is_eq;
+                        run_len = 0;
+                    }
+                    run_len++, k++, i++, j++;
+                }
+            } else if (mode1==CigarMode::M or mode1==CigarMode::X) {
+                i += length1;
+                j += length1;
+            } else if (mode1==CigarMode::D) {
+                i += length1;
+            } else {
+                j += length1;
+            }
+        }
+        std::cout << i << " " << j << "\n";
+    }
+
  public:
     MinSeqAligner(logging::Logger &logger,
                   std::experimental::filesystem::path output_dir,
@@ -49,27 +168,25 @@ class MinSeqAligner {
         VERIFY(first_vec.size()==1);
         const std::string first = ReadContig(first_path);
         const std::string second = ReadContig(second_path);
-        const std::string concat = ConcatContigs(first, second);
 
-        logger.info() << "Building suffix array...\n";
-        const suffix_array::SuffixArray<std::string> suf_arr(concat);
-        logger.info() << "Building LCP array...\n";
-        const suffix_array::LCP<std::string> lcp(suf_arr);
-
-        MinIntervalFinder segment_finder(max_freq);
-        logger.info() << "Computing rare segments...\n";
-        const MinIntervalCollections
-            int_col = segment_finder.Find(lcp, first.size());
-        std::ofstream os(output_dir/"shortest_matches.tsv");
-        os << int_col;
-
-        logger.info() << "Aligning...\n";
-        const Cigar cigar = SparseAligner(logger).Align(int_col, first, second);
+        Cigar main_cigar;
+        std::queue<MinSeqTask> queue;
+        bool matches_exported{false};
+        queue.push({main_cigar.begin(), 0, (int64_t) first.size(), 0,
+                    (int64_t) second.size()});
+        for (bool export_matches = true; not queue.empty(); queue.pop()) {
+            RunTask(queue, main_cigar, first, second, export_matches);
+            export_matches = false;
+        }
+        main_cigar.AssertValidity(first, second);
+        AssignMismatches(main_cigar, first, second);
+        std::cout << main_cigar;
+        main_cigar.AssertValidity(first, second);
+        main_cigar.Summary();
         std::ofstream cigar_os(output_dir/"cigar.txt");
-        cigar_os << cigar;
-        logger.info() << "Cigar exported\n";
+        cigar_os << main_cigar;
+        logger.info() << "Cigar exported\n\n";
     }
 };
 
 } // namespace minseq
-

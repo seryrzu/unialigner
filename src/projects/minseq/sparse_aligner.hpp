@@ -49,10 +49,13 @@ class SparseAligner {
 
     std::vector<MinFreqInterval>
     GetAlignmentVec(const std::vector<MinFreqInterval> &vec) {
+        if (vec.empty()) {
+            return {};
+        }
         std::vector<double> scores{vec.front().Score()};
         std::vector<int> backtracks{-1};
 
-        double max_score{0};
+        double max_score{scores.front()};
         int argmax_score{0};
         for (int i = 1; i < vec.size(); ++i) {
             double &score = scores.emplace_back(vec[i].Score());
@@ -72,7 +75,6 @@ class SparseAligner {
                 argmax_score = i;
             }
         }
-        logger.info() << "Max score " << max_score << "\n";
 
         std::vector<MinFreqInterval> alignment_vec;
         while (argmax_score!=-1) {
@@ -80,6 +82,9 @@ class SparseAligner {
             argmax_score = backtracks[argmax_score];
         }
         std::reverse(alignment_vec.begin(), alignment_vec.end());
+
+        logger.info() << "Max score " << max_score <<
+            "; Alignment vector " << alignment_vec.size() << "\n";
 
         return alignment_vec;
     }
@@ -90,7 +95,7 @@ class SparseAligner {
         Cigar cigar;
         int left_border_fst{0}, left_border_snd{0},
             right_border_fst{0}, right_border_snd{0};
-        for (int i = 1; i < vec.size() - 1; ++i) {
+        for (int i = 0; i < vec.size() - 1; ++i) {
             const MinFreqInterval &cur = vec[i], &next = vec[i + 1];
             right_border_fst = next.fst_coord;
             right_border_snd = next.snd_coord;
@@ -137,15 +142,15 @@ class SparseAligner {
         {
             int i = 0, j = 0;
             for (const CigarFragment &fragment : cigar) {
-                if (fragment.mode == CigarMode::M) {
+                if (fragment.mode==CigarMode::M) {
                     fst_cov[i]++, snd_cov[j]++;
                     fst_cov[i + fragment.length]--;
                     snd_cov[j + fragment.length]--;
                     i += fragment.length, j += fragment.length;
-                } else if (fragment.mode == CigarMode::I) {
+                } else if (fragment.mode==CigarMode::I) {
                     j += fragment.length;
                 } else {
-                    VERIFY(fragment.mode == CigarMode::D);
+                    VERIFY(fragment.mode==CigarMode::D);
                     i += fragment.length;
                 }
             }
@@ -184,20 +189,20 @@ class SparseAligner {
     Cigar Align(const MinIntervalCollections &cols,
                 const std::string &fst, const std::string &snd) {
         std::vector<MinFreqInterval> vec = Cols2Vec(cols);
-        logger.info() << "Running quadratic on " << vec.size() << "...\n";
         std::sort(vec.begin(), vec.end());
+        logger.info() << "Running quadratic on " << vec.size() << "...\n";
 
         const std::vector<MinFreqInterval> alignment_vec = GetAlignmentVec(vec);
 
         Cigar cigar = AlignmentVec2Cigar(alignment_vec, fst, snd);
 
-        const auto[fst_uncovered, snd_uncovered] =
-        GetUncovered(cigar, vec, fst, snd);
-        logger.info() << "Uncovered fst = " << fst_uncovered <<
-                      "; snd = " << snd_uncovered << "\n";
+        // const auto[fst_uncovered, snd_uncovered] =
+        // GetUncovered(cigar, vec, fst, snd);
+        // logger.info() << "Uncovered fst = " << fst_uncovered <<
+        //               "; snd = " << snd_uncovered << "\n";
 
-        double mutability = cigar.GetMutability();
-        logger.info() << "Mutability = " << mutability << "\n";
+        // double mutability = cigar.GetMutability();
+        // logger.info() << "Mutability = " << mutability << "\n";
         return cigar;
     }
 };

@@ -57,7 +57,7 @@ def parse_cigar(cigar_fn):
     for _, length_digits in cig_iter:
         length = int(''.join(length_digits))
         op = next(next(cig_iter)[1])
-        if op == 'M':
+        if op == 'M' or op == 'X':
             X.append(X[-1] + length)
             Y.append(Y[-1] + length)
         elif op == 'D':
