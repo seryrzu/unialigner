@@ -51,7 +51,7 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
         int prev{0}, cur{0}, next{0};
         int fst_freq{0}, snd_freq{0};
         int i{0}, j{0};
-        for (; j < w - 1; ++j) {
+        for (; j < std::min((int) suf_arr.size(), w) - 1; ++j) {
             lcp_interval.ExtendRight();
         }
         while (j < suf_arr.size()) {
