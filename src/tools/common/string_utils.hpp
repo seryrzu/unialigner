@@ -3,8 +3,30 @@
 //
 
 #pragma once
+#include <sstream>
 #include <string>
 #include <algorithm>
+#include <vector>
+
+inline std::string itos(size_t val, size_t min_size = 0) {
+    std::stringstream ss;
+    ss << val;
+    std::string res = ss.str();
+    while(res.size() < min_size) {
+        res = "0" + res;
+    }
+    return res;
+}
+
+inline std::string itos(int val, size_t min_size = 0) {
+    std::stringstream ss;
+    ss << val;
+    std::string res = ss.str();
+    while(res.size() < min_size) {
+        res = "0" + res;
+    }
+    return res;
+}
 
 static bool endsWith(const std::string& str, const std::string& suffix)
 {
@@ -37,21 +59,40 @@ static inline std::string & compress_inplace(std::string &s) {
     return s;
 }
 
-inline std::vector<std::string> split(const std::string &s, const std::string &delimiter) {
-    std::vector<std::string> res;
-    size_t cur = 0;
-    while(cur < s.size()) {
-        size_t next = s.find(delimiter, cur);
-        if (next == size_t(-1)) {
-            next = s.size();
-        }
-        if (next > cur) {
-            res.push_back(s.substr(cur, next - cur));
-        }
-        cur = next + delimiter.size();
+static inline std::string mask(const std::string &s, const std::string &pattern = "/\\\"", char value = '_') {
+    std::string res = s;
+    for(char &c : res) {
+        if(pattern.find(c) != size_t(-1))
+            c = value;
     }
-    return res;
+    return std::move(res);
 }
+
+inline std::string join(const std::string &s, const std::vector<std::string> &arr) {
+    if(arr.empty())
+        return "";
+    std::stringstream ss;
+    ss << arr[0];
+    for(size_t i = 1; i < arr.size(); i++) {
+        ss << s << arr[i];
+    }
+    return ss.str();
+}
+
+template<class I>
+inline std::string join(const std::string &s, I begin, I end) {
+    if(begin == end)
+        return "";
+    std::stringstream ss;
+    ss << *begin;
+    ++begin;
+    while(begin != end) {
+        ss << s << *begin;
+        ++begin;
+    }
+    return ss.str();
+}
+
 
 inline std::vector<std::string> split(const std::string &s) {
     std::vector<std::string> res;
@@ -61,6 +102,24 @@ inline std::vector<std::string> split(const std::string &s) {
         size_t next = cur;
         while(next < s.size() && bad.find(s[next]) == size_t(-1)) {
 //            std::cout << s[cur] << " " << size_t(s[next]) << " " << size_t('\t') << std::endl;
+            next += 1;
+        }
+        if (next > cur) {
+            res.push_back(s.substr(cur, next - cur));
+        }
+        cur = next + 1;
+    }
+    if(res.empty())
+        res.emplace_back("");
+    return res;
+}
+
+inline std::vector<std::string> split(const std::string &s, const std::string &delim) {
+    std::vector<std::string> res;
+    size_t cur = 0;
+    while(cur < s.size()) {
+        size_t next = cur;
+        while(next < s.size() && delim.find(s[next]) == size_t(-1)) {
             next += 1;
         }
         if (next > cur) {
