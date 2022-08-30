@@ -11,7 +11,7 @@
 #include "minseq.hpp"
 
 int main(int argc, char **argv) {
-    CLParser parser{{"output-dir=", "first=", "second=", "freq=1"}, {},
+    CLParser parser{{"output-dir=", "first=", "second=", "freq=1", "debug"}, {},
                     {"o=output-dir", "f=first", "s=second", "f=freq"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
@@ -23,9 +23,12 @@ int main(int argc, char **argv) {
     const std::experimental::filesystem::path
         output_dir{parser.getValue("output-dir")};
     ensure_dir_existance(output_dir);
+
+    bool debug = parser.getCheck("debug");
     logging::LoggerStorage ls{output_dir, "tandem_aligner"};
     logging::Logger logger;
-    logger.addLogFile(ls.newLoggerFile());
+    logger.addLogFile(ls.newLoggerFile(),
+                      debug ? logging::debug : logging::trace);
 
     auto time_point{std::chrono::system_clock::now()};
     std::time_t now = std::chrono::system_clock::to_time_t(time_point);
@@ -36,6 +39,7 @@ int main(int argc, char **argv) {
         logger << argv[i] << " ";
     }
     logger << std::endl;
+    logging::logGit(logger, output_dir / "version.txt");
 
     const std::experimental::filesystem::path first_path =
         std::experimental::filesystem::canonical(parser.getValue("first"));

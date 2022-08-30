@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 #include <list>
+#include "common/logging.hpp"
 
 namespace minseq {
 
@@ -75,7 +76,7 @@ class Cigar {
         return cigar_vec.insert(pos, value);
     }
 
-    void Summary() const;
+    void Summary(logging::Logger &) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Cigar &cigar);

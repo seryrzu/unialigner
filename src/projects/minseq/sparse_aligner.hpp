@@ -83,7 +83,7 @@ class SparseAligner {
         }
         std::reverse(alignment_vec.begin(), alignment_vec.end());
 
-        logger.info() << "Max score " << max_score <<
+        logger.debug() << "Max score " << max_score <<
             "; Alignment vector " << alignment_vec.size() << "\n";
 
         return alignment_vec;
@@ -190,7 +190,7 @@ class SparseAligner {
                 const std::string &fst, const std::string &snd) {
         std::vector<MinFreqInterval> vec = Cols2Vec(cols);
         std::sort(vec.begin(), vec.end());
-        logger.info() << "Running quadratic on " << vec.size() << "...\n";
+        logger.trace() << "Running quadratic on " << vec.size() << "...\n";
 
         const std::vector<MinFreqInterval> alignment_vec = GetAlignmentVec(vec);
 

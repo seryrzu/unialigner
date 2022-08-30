@@ -43,25 +43,26 @@ class MinSeqAligner {
         return concat_stream.str();
     }
 
-    void RunTask(std::queue<MinSeqTask> &queue, Cigar &main_cigar,
-                 const std::string &first, const std::string &second,
-                 bool export_matches) const {
+    void RunTask(std::queue<MinSeqTask> &queue,
+                 Cigar &main_cigar,
+                 const std::string &first,
+                 const std::string &second,
+                 bool export_matches,
+                 bool assert_validity = true) const {
         MinSeqTask task = queue.front();
-        std::cout << task.st1 << " " << task.len1 << " " <<
-                  task.st2 << " " << task.len2 << "\n";
         const std::string first_substr = first.substr(task.st1, task.len1);
         const std::string
             second_substr = second.substr(task.st2, task.len2);
         const std::string
             concat = ConcatContigs(first_substr, second_substr);
 
-        logger.info() << "Building suffix array...\n";
+        logger.debug() << "Building suffix array...\n";
         const suffix_array::SuffixArray<std::string> suf_arr(concat);
-        logger.info() << "Building LCP array...\n";
+        logger.debug() << "Building LCP array...\n";
         const suffix_array::LCP<std::string> lcp(suf_arr);
 
         MinIntervalFinder segment_finder(max_freq);
-        logger.info() << "Computing rare segments...\n";
+        logger.debug() << "Computing rare segments...\n";
         const MinIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
 
@@ -70,11 +71,11 @@ class MinSeqAligner {
             os << int_col;
         }
 
-        logger.info() << "Aligning...\n";
+        logger.debug() << "Aligning...\n";
         Cigar cigar = SparseAligner(logger).Align(int_col,
                                                   first_substr, second_substr);
         auto main_cigar_it = main_cigar.AssignInterval(cigar, task.cigar_it);
-        logger.info() << "Finished alignment\n";
+        logger.debug() << "Finished alignment\n";
         if (cigar.Size() > 2) {
             int64_t i{task.st1}, j{task.st2};
             auto it1 = cigar.cbegin(), it2 = ++cigar.cbegin();
@@ -108,6 +109,8 @@ class MinSeqAligner {
                 }
             }
         }
+        if (assert_validity)
+            cigar.AssertValidity(first, second);
     }
 
     static void AssignMismatches(Cigar &cigar,
@@ -136,7 +139,7 @@ class MinSeqAligner {
                                            {run_len, is_eq ? CigarMode::M
                                                            : CigarMode::X});
                         it1 = it2++;
-                        if (k == length1)
+                        if (k==length1)
                             break;
                         is_eq = !is_eq;
                         run_len = 0;
@@ -152,7 +155,7 @@ class MinSeqAligner {
                 j += length1;
             }
         }
-        std::cout << i << " " << j << "\n";
+        cigar.AssertValidity(first, second);
     }
 
  public:
@@ -169,23 +172,55 @@ class MinSeqAligner {
         const std::string first = ReadContig(first_path);
         const std::string second = ReadContig(second_path);
 
-        Cigar main_cigar;
+        Cigar cigar;
         std::queue<MinSeqTask> queue;
         bool matches_exported{false};
-        queue.push({main_cigar.begin(), 0, (int64_t) first.size(), 0,
+        queue.push({cigar.begin(), 0, (int64_t) first.size(), 0,
                     (int64_t) second.size()});
-        for (bool export_matches = true; not queue.empty(); queue.pop()) {
-            RunTask(queue, main_cigar, first, second, export_matches);
-            export_matches = false;
+        logger.info() << "Running primary alignment...\n";
+        RunTask(queue, cigar, first, second, /*export_matches*/ true);
+        queue.pop();
+        logger.info() << "Finished running primary alignment\n";
+        cigar.Summary(logger);
+        logger.info() << "Running recursive alignments...\n";
+
+        {
+            std::string cigar_outfile = output_dir/"cigar_primary.txt";
+            std::ofstream cigar_os(cigar_outfile);
+            cigar_os << cigar;
+            logger.info() << "Primary cigar exported to " << cigar_outfile
+                          << "\n\n";
         }
-        main_cigar.AssertValidity(first, second);
-        AssignMismatches(main_cigar, first, second);
-        std::cout << main_cigar;
-        main_cigar.AssertValidity(first, second);
-        main_cigar.Summary();
-        std::ofstream cigar_os(output_dir/"cigar.txt");
-        cigar_os << main_cigar;
-        logger.info() << "Cigar exported\n\n";
+
+        for (; not queue.empty(); queue.pop()) {
+            RunTask(queue, cigar, first, second,
+                /*export_matches*/ false,
+                /*assert_validity*/ false);
+        }
+        cigar.AssertValidity(first, second);
+        logger.info() << "Finished running recursive alignment\n";
+        cigar.Summary(logger);
+
+        {
+            std::string cigar_outfile = output_dir/"cigar_recursive.txt";
+            std::ofstream cigar_os(cigar_outfile);
+            cigar_os << cigar;
+            logger.info() << "Cigar after recursion exported to "
+                          << cigar_outfile << "\n\n";
+        }
+
+        logger.info() << "Assigning mismatches...\n";
+        AssignMismatches(cigar, first, second);
+        logger.info() << "Finished assigning mismatches\n";
+        cigar.Summary(logger);
+
+        {
+            std::string cigar_outfile = output_dir/"cigar.txt";
+            std::ofstream cigar_os(cigar_outfile);
+            cigar_os << cigar;
+            logger.info() << "Cigar w/ mismatches exported to " << cigar_outfile
+                          << "\n";
+        }
     }
 };
 

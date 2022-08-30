@@ -21,7 +21,7 @@ inline char minseq::cigar_mode2str(const CigarMode &fragment) {
 }
 
 void Cigar::extend(const int64_t length, const CigarMode mode) {
-    if (length == 0) {
+    if (length==0) {
         return;
     }
     if (empty() or cigar_vec.back().mode!=mode) {
@@ -31,11 +31,10 @@ void Cigar::extend(const int64_t length, const CigarMode mode) {
     }
 }
 
-
 [[nodiscard]] size_t Cigar::QueryLength() const {
     size_t length{0};
-    for (const CigarFragment& fragment : cigar_vec) {
-        if (fragment.mode != CigarMode::D) {
+    for (const CigarFragment &fragment : cigar_vec) {
+        if (fragment.mode!=CigarMode::D) {
             length += fragment.length;
         }
     }
@@ -44,8 +43,8 @@ void Cigar::extend(const int64_t length, const CigarMode mode) {
 
 [[nodiscard]] size_t Cigar::TargetLength() const {
     size_t length{0};
-    for (const CigarFragment& fragment : cigar_vec) {
-        if (fragment.mode != CigarMode::I) {
+    for (const CigarFragment &fragment : cigar_vec) {
+        if (fragment.mode!=CigarMode::I) {
             length += fragment.length;
         }
     }
@@ -54,57 +53,59 @@ void Cigar::extend(const int64_t length, const CigarMode mode) {
 
 [[nodiscard]] double Cigar::GetMutability() const {
     double nmatches{0};
-    for (const CigarFragment& fragment : cigar_vec) {
-        if (fragment.mode == CigarMode::M) {
+    for (const CigarFragment &fragment : cigar_vec) {
+        if (fragment.mode==CigarMode::M) {
             nmatches += fragment.length;
         }
     }
-    std::cout << 1 - nmatches / TargetLength() << " " << 1 - nmatches / QueryLength() << "\n";
-    return 1 - (nmatches / TargetLength() + nmatches / QueryLength()) / 2;
+    std::cout << 1 - nmatches/TargetLength() << " "
+              << 1 - nmatches/QueryLength() << "\n";
+    return 1 - (nmatches/TargetLength() + nmatches/QueryLength())/2;
 }
 
 void Cigar::AssertValidity(const std::string &target,
                            const std::string &query) const {
-    VERIFY(target.size() == TargetLength());
-    VERIFY(query.size() == QueryLength());
+    VERIFY(target.size()==TargetLength());
+    VERIFY(query.size()==QueryLength());
 
     int i{0}, j{0};
-    for (const CigarFragment& fragment : cigar_vec) {
-        if (fragment.mode == CigarMode::M or fragment.mode == CigarMode::X) {
-            if (fragment.mode == CigarMode::M) {
+    for (const CigarFragment &fragment : cigar_vec) {
+        if (fragment.mode==CigarMode::M or fragment.mode==CigarMode::X) {
+            if (fragment.mode==CigarMode::M) {
                 VERIFY(target.substr(i, fragment.length)==
                     query.substr(j, fragment.length));
             } else {
-                std::cout << i << " " << j << "\n";
                 for (int64_t k = 0; k < fragment.length; ++k) {
-                    VERIFY(target[i+k] != query[j+k]);
+                    VERIFY(target[i + k]!=query[j + k]);
                 }
             }
             i += fragment.length;
             j += fragment.length;
-        } else if (fragment.mode == CigarMode::I) {
+        } else if (fragment.mode==CigarMode::I) {
             j += fragment.length;
-        } else if (fragment.mode == CigarMode::D) {
+        } else if (fragment.mode==CigarMode::D) {
             i += fragment.length;
         }
     }
-    VERIFY(i == target.size());
-    VERIFY(j == query.size());
+    VERIFY(i==target.size());
+    VERIFY(j==query.size());
 }
 
-void Cigar::Summary() const {
+void Cigar::Summary(logging::Logger &logger) const {
     std::vector<int64_t> conf_cnt(4), base_cnt(4);
     for (const CigarFragment &fragment : cigar_vec) {
         conf_cnt[(int) fragment.mode] += fragment.length;
         base_cnt[(int) fragment.mode]++;
     }
-    std::cout << "Counts of configurations in the optimal alignment\n";
+    logger.info() << "Counts of configurations in the optimal alignment\n";
     for (int i = 0; i < 4; ++i) {
-        std::cout << cigar_mode2str((CigarMode) i) << " " << conf_cnt[i] << "\n";
+        logger.info() << "\t" << cigar_mode2str((CigarMode) i) << " "
+                      << conf_cnt[i] << "\n";
     }
-    std::cout << "\nCounts of bases in the optimal alignment\n";
+    logger.info() << "Counts of bases in the optimal alignment\n";
     for (int i = 0; i < 4; ++i) {
-        std::cout << cigar_mode2str((CigarMode) i) << " " << base_cnt[i] << "\n";
+        logger.info() << "\t" << cigar_mode2str((CigarMode) i) << " "
+                      << base_cnt[i] << "\n";
     }
 }
 
