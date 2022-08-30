@@ -4,11 +4,14 @@
 
 #pragma once
 
+#include <utility>
 #include <vector>
 #include <fstream>
 #include <unordered_map>
 #include <experimental/iterator>
+#include <experimental/filesystem>
 #include "lcp_interval.hpp"
+#include "common/dir_utils.hpp"
 
 namespace minseq {
 
@@ -74,6 +77,8 @@ std::ostream &operator<<(std::ostream &os, const MinIntervalCollections &cols);
 class MinIntervalFinder {
     const int max_freq{1};
     const int min_freq{1};
+    bool exprt{true};
+    std::experimental::filesystem::path outdir;
 
     struct MinRarePrefix {
         struct ClassMinLen {
@@ -110,8 +115,17 @@ class MinIntervalFinder {
     PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec,
                         const int fst_len) const;
 
+    void OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
+                   std::experimental::filesystem::path outpath) const;
+
  public:
-    explicit MinIntervalFinder(int max_freq) : max_freq{max_freq} {}
+    explicit MinIntervalFinder(int max_freq,
+                               bool exprt,
+                               std::experimental::filesystem::path outdir) :
+                               max_freq{max_freq}, exprt{exprt},
+                               outdir{std::move(outdir)} {
+        ensure_dir_existance(this->outdir);
+    }
 
     [[nodiscard]] MinIntervalCollections Find(const suffix_array::LCP<std::string> &lcp,
                                               const int fst_len) const;

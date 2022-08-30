@@ -47,7 +47,7 @@ class MinSeqAligner {
                  Cigar &main_cigar,
                  const std::string &first,
                  const std::string &second,
-                 bool export_matches,
+                 bool exprt,
                  bool assert_validity = true) const {
         MinSeqTask task = queue.front();
         const std::string first_substr = first.substr(task.st1, task.len1);
@@ -61,12 +61,13 @@ class MinSeqAligner {
         logger.debug() << "Building LCP array...\n";
         const suffix_array::LCP<std::string> lcp(suf_arr);
 
-        MinIntervalFinder segment_finder(max_freq);
+        MinIntervalFinder
+            segment_finder(max_freq, exprt, output_dir/"min_interval_finder");
         logger.debug() << "Computing rare segments...\n";
         const MinIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
 
-        if (export_matches) {
+        if (exprt) {
             std::ofstream os(output_dir/"shortest_matches.tsv");
             os << int_col;
         }

@@ -126,9 +126,26 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
     return cols;
 }
 
+void MinIntervalFinder::OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
+                                  std::experimental::filesystem::path outpath) const {
+    ensure_dir_existance(outpath);
+    for (const MinRarePrefix &srp : srp_vec) {
+        std::stringstream fn_ss;
+        fn_ss << "FstFreq" << srp.fst_freq << "_SndFreq" << srp.snd_freq
+              << ".tsv";
+        std::ofstream os(outpath/fn_ss.str());
+        os << "Pos\tLength\n";
+        for (auto it = srp.mrp.begin(); it!=srp.mrp.end(); ++it) {
+            os << it - srp.mrp.begin() << "\t" << it->len << "\n";
+        }
+    }
+}
+
 [[nodiscard]] MinIntervalCollections
 MinIntervalFinder::Find(const suffix_array::LCP<std::string> &lcp,
                         const int fst_len) const {
     const std::vector<MinRarePrefix> srp_vec = GetMRP(lcp, fst_len);
+    if (exprt)
+        OutputMRP(srp_vec, outdir/"min_rare_prefixes");
     return PrefixesToIntervals(srp_vec, fst_len);
 }
