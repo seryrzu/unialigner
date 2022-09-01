@@ -52,8 +52,8 @@ def write_bio_seqs(filename, seqs, width=60):
 def parse_cigar(cigar, s1=None, s2=None):
     parsed_cigar = []
     st = 0
-    cnt = dict.fromkeys(list("=XID"), 0)
-    for mo in re.finditer(r'=|X|I|D', cigar):
+    cnt = dict.fromkeys(list("=MXID"), 0)
+    for mo in re.finditer(r'=|M|X|I|D', cigar):
         group = mo.group()
         pos = mo.start()
         region_len = int(cigar[st:pos])
@@ -66,7 +66,7 @@ def parse_cigar(cigar, s1=None, s2=None):
     a1, a2 = [], []
     i1, i2 = 0, 0
     for region_len, group in parsed_cigar:
-        if group in '=X':
+        if group in '=XM':
             new_s1 = s1[i1:i1+region_len]
             new_s2 = s2[i2:i2+region_len]
             # if group == '=':
@@ -91,7 +91,7 @@ def parse_cigar(cigar, s1=None, s2=None):
 
 assert parse_cigar('89=1X6=3X76=') == \
     ([(89, '='), (1, 'X'), (6, '='), (3, 'X'), (76, '=')],
-     {'=': 171, 'X': 4, 'I': 0, 'D': 0})
+     {'=': 171, 'X': 4, 'I': 0, 'D': 0, 'M': 0})
 
 
 def calc_identity(a, b, mode='NW', k=None):
