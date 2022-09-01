@@ -115,9 +115,6 @@ def get_alignment(filepath, k, asm1, asm2):
             filt_Y.append(ny)
     filt_X.append(Xs[-1])
     filt_Y.append(Ys[-1])
-    print('Alignment')
-    for x, y in zip(filt_X, filt_Y):
-        print(x, y)
 
     return filt_X, filt_Y
 
