@@ -12,8 +12,12 @@ def main():
     with open(params.input) as f:
         f.readline()
         for line in f:
-            min_rare_len.append(int(line.strip().split()[1]))
+            val = int(line.strip().split()[1])
+            if val < 2147483647:
+                min_rare_len.append(val)
     min_rare_len = min_rare_len[:len(min_rare_len) // 2]
+    print('Mean = ', sum(min_rare_len) / len(min_rare_len))
+    print('# > 10k', sum(x > 10000 for x in min_rare_len))
     plt.plot(min_rare_len)
     plt.ylim(0, 30000)
     plt.title("Length of unique substring starting at each position")
