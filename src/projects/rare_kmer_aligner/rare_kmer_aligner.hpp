@@ -242,9 +242,6 @@ namespace tandem_aligner {
             if (not blocks.empty() and not blocks.front().is_match) {
                 blocks.erase(blocks.begin());
             }
-            for (const auto & block : blocks) {
-                std::cout << block.is_match << " \t " << block;
-            }
             return blocks;
         }
 
