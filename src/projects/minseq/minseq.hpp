@@ -180,6 +180,7 @@ class MinSeqAligner {
                     (int64_t) second.size()});
         logger.info() << "Running primary alignment...\n";
         RunTask(queue, cigar, first, second, /*export_matches*/ true);
+        logger.info() << "Number of indel-blocks " << queue.size() << "\n";
         queue.pop();
         logger.info() << "Finished running primary alignment\n";
         cigar.Summary(logger);

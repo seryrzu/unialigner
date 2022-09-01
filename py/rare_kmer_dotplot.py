@@ -164,7 +164,7 @@ def main():
     plt.ylim(0)
     plt.grid(b=True, which='major', axis='both')
     plt.xticks(rotation=30)
-    plt.title(f'k={params.k}, MaxRareCount={params.rare}')
+    plt.title(f'k={params.k}, MaxCount={params.rare}')
     outfn = os.path.join(params.outdir, 'dotplot.png')
     plt.savefig(outfn, format='png', bbox_inches="tight")
     plt.close()
