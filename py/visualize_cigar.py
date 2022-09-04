@@ -23,7 +23,8 @@ def main():
         cx, cy = 0, 0
         x, y = [cx], [cy]
         with open(input_file) as f:
-            parsed_cigar = parse_cigar(f.readline())[0]
+            parsed_cigar, cnt = parse_cigar(f.readline())
+            print(cnt)
             for len, mode in parsed_cigar:
                 len = int(len)
                 if mode == 'M' or mode == 'S':
@@ -34,8 +35,8 @@ def main():
                 elif mode == 'D':
                     cx += len
 
-                x.append(cx)
-                y.append(cy)
+                x.append(cx / 1e6)
+                y.append(cy / 1e6)
 
         plt.plot(x, y)
 

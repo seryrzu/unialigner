@@ -70,10 +70,10 @@ def parse_cigar(cigar_fn):
     return X, Y
 
 
-def get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys, colors):
+def get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys):
     traces = [go.Scattergl(x=al_X, y=al_Y, mode='lines', name='Alignment', legendgroup='Alignment',
                            marker=dict(size=2),
-                           line=dict(color=colors[0], width=4),
+                           line=dict(color='black', width=4),
                            showlegend=True)]
     if edlib_Y is not None:
         traces.append(go.Scattergl(x=edlib_X, y=edlib_Y, mode='lines', name='Edlib Alignment', legendgroup='Edlib Alignment',
@@ -90,7 +90,7 @@ def get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys, colors):
                                    name=str(freq),
                                    legendgroup=str(freq),
                                    marker=dict(size=2),
-                                   line=dict(color=colors[1 + i], width=1),
+                                   line=dict(width=1),
                                    showlegend=True))
     return traces
 
@@ -115,13 +115,14 @@ def main():
     if has_edlib:
         edlib_X, edlib_Y = parse_cigar(os.path.join(params.shortest_matches, params.edlib))
 
-    n_colors = 1 + len(Xs)
-    colors = px.colors.sample_colorscale("turbo", [n / (n_colors - 1) * 0.8 for n in range(n_colors)])
+    # n_colors = 1 + len(Xs)
+    # colors = px.colors.sample_colorscale("plotly3", [n / (n_colors - 1) for n in range(n_colors)])
 
-    traces = get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys, colors)
+    traces = get_traces(al_X, al_Y, edlib_X, edlib_Y, Xs, Ys)
 
     layout = go.Layout(title='Dotplot', xaxis_title=params.asm1_name, yaxis_title=params.asm2_name)
     fig = go.Figure(traces, layout)
+    fig.update_yaxes(scaleanchor = "x", scaleratio = 1)
     fig.write_html(os.path.join(params.outdir, 'dotplot.html'))
 
 
