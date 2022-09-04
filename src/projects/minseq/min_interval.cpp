@@ -43,7 +43,8 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
     VERIFY(lcp.PSufArr()!=nullptr);
     const SuffixArray suf_arr = *lcp.PSufArr();
     std::vector<MinRarePrefix> mrp_vec;
-    for (int w = 2; w <= 2*max_freq; w++) {
+    for (auto [found_anchor, w] = std::make_pair<bool, int>(false, 2);
+         not found_anchor and w <= 2*std::min(fst_len, max_freq); w++) {
         for (int i = 1; i <= w - 1; ++i) {
             mrp_vec.emplace_back(i, w - i, suf_arr.size());
         }
@@ -64,9 +65,9 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
             } else {
                 next = 0;
             }
-            if (cur > std::max(prev, next)
-                and std::min(fst_freq, snd_freq) >= min_freq and
-                std::max(fst_freq, snd_freq) <= max_freq) {
+            if (cur > std::max(prev, next) and
+                std::min(fst_freq, snd_freq) >= min_freq and
+                std::max(fst_freq, snd_freq) <= (w+1) / 2) {
                 //std::cout << i << " " << suf_arr[i] << " " << j << " "
                 //          << suf_arr[j] << " "
                 //          << fst_freq << " " << snd_freq << " "
@@ -76,6 +77,9 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
                 int srp_index = (w - 2)*(w - 1)/2 + fst_freq - 1;
                 VERIFY(mrp_vec[srp_index].fst_freq==fst_freq);
                 VERIFY(mrp_vec[srp_index].snd_freq==snd_freq);
+                if (not force_highfreq_search) {
+                    found_anchor = true;
+                }
                 for (int k = i; k <= j; ++k) {
                     // VERIFY(srp_vec[srp_index].srp[suf_arr[k]]==0);
                     // srp_vec[srp_index].srp[suf_arr[k]] =
@@ -144,6 +148,7 @@ void MinIntervalFinder::OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
 [[nodiscard]] MinIntervalCollections
 MinIntervalFinder::Find(const suffix_array::LCP<std::string> &lcp,
                         const int fst_len) const {
+
     const std::vector<MinRarePrefix> srp_vec = GetMRP(lcp, fst_len);
     if (exprt)
         OutputMRP(srp_vec, outdir/"min_rare_prefixes");

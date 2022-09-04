@@ -23,6 +23,7 @@ struct MinSeqTask {
 class MinSeqAligner {
     logging::Logger &logger;
     int max_freq{1};
+    bool force_highfreq_search{false};
     const std::experimental::filesystem::path output_dir;
 
     [[nodiscard]] std::string ReadContig(const std::experimental::filesystem::path &path) const {
@@ -62,7 +63,8 @@ class MinSeqAligner {
         const suffix_array::LCP<std::string> lcp(suf_arr);
 
         MinIntervalFinder
-            segment_finder(max_freq, exprt, output_dir/"min_interval_finder");
+            segment_finder(max_freq, force_highfreq_search, exprt,
+                           output_dir/"min_interval_finder");
         logger.debug() << "Computing rare segments...\n";
         const MinIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
@@ -114,19 +116,21 @@ class MinSeqAligner {
             cigar.AssertValidity(first, second);
     }
 
-    static void AssignMismatches(Cigar &cigar,
-                                 const std::string &first,
-                                 const std::string &second) {
+    void AssignMismatches(Cigar &cigar,
+                          const std::string &first,
+                          const std::string &second) const {
         if (cigar.Size() < 2)
             return;
         auto it1 = cigar.begin(), it2 = ++cigar.begin();
         int i{0}, j{0};
+        std::unordered_map<int, int> counter;
         for (; it2!=cigar.end(); ++it1, ++it2) {
             int64_t length1{it1->length}, length2{it2->length};
             CigarMode mode1{it1->mode}, mode2{it2->mode};
             if ((mode1==CigarMode::D or mode1==CigarMode::I) and
                 (mode2==CigarMode::D or mode2==CigarMode::I) and
                 length1==length2) {
+                counter[length1]++;
                 it2 = cigar.Erase(it2);
                 it1 = cigar.Erase(it1);
                 VERIFY(it1==it2);
@@ -156,14 +160,20 @@ class MinSeqAligner {
                 j += length1;
             }
         }
+        for (auto [length, cnt] : counter) {
+            logger.trace() << "Square Indel-block of length " << length
+                << " appears " << cnt << " times\n";
+        }
         cigar.AssertValidity(first, second);
     }
 
  public:
     MinSeqAligner(logging::Logger &logger,
                   std::experimental::filesystem::path output_dir,
-                  const int max_freq) :
-        logger{logger}, output_dir{std::move(output_dir)}, max_freq{max_freq} {}
+                  const int max_freq,
+                  const bool force_highfreq_search) :
+        logger{logger}, output_dir{std::move(output_dir)}, max_freq{max_freq},
+        force_highfreq_search{force_highfreq_search} {}
 
     void Find(const std::experimental::filesystem::path &first_path,
               const std::experimental::filesystem::path &second_path) const {
@@ -179,7 +189,8 @@ class MinSeqAligner {
         queue.push({cigar.begin(), 0, (int64_t) first.size(), 0,
                     (int64_t) second.size()});
         logger.info() << "Running primary alignment...\n";
-        RunTask(queue, cigar, first, second, /*export_matches*/ true);
+        RunTask(queue, cigar, first, second,
+                /*export_matches*/ true);
         logger.info() << "Number of indel-blocks " << queue.size() << "\n";
         queue.pop();
         logger.info() << "Finished running primary alignment\n";

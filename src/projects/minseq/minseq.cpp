@@ -11,8 +11,9 @@
 #include "minseq.hpp"
 
 int main(int argc, char **argv) {
-    CLParser parser{{"output-dir=", "first=", "second=", "freq=1", "debug"}, {},
-                    {"o=output-dir", "f=first", "s=second", "f=freq"}};
+    CLParser parser{{"output-dir=", "first=", "second=", "max_count=50",
+                     "debug", "force_highfreq_search"}, {},
+                    {"o=output-dir", "f=first", "s=second", "f=max_count"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
         std::cerr << "Incorrect parameters" << std::endl;
@@ -46,9 +47,10 @@ int main(int argc, char **argv) {
     const std::experimental::filesystem::path second_path =
         std::experimental::filesystem::canonical(parser.getValue("second"));
 
-    int max_freq = std::stoi(parser.getValue("freq"));
+    int max_freq = std::stoi(parser.getValue("max_count"));
 
-    minseq::MinSeqAligner(logger, output_dir, max_freq)
+    bool force_highfreq_search = parser.getCheck("force_highfreq_search");
+    minseq::MinSeqAligner(logger, output_dir, max_freq, force_highfreq_search)
         .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";

@@ -77,6 +77,7 @@ std::ostream &operator<<(std::ostream &os, const MinIntervalCollections &cols);
 class MinIntervalFinder {
     const int max_freq{1};
     const int min_freq{1};
+    bool force_highfreq_search{false};
     bool exprt{true};
     std::experimental::filesystem::path outdir;
 
@@ -119,11 +120,13 @@ class MinIntervalFinder {
                    std::experimental::filesystem::path outpath) const;
 
  public:
-    explicit MinIntervalFinder(int max_freq,
-                               bool exprt,
-                               std::experimental::filesystem::path outdir) :
-                               max_freq{max_freq}, exprt{exprt},
-                               outdir{std::move(outdir)} {
+    MinIntervalFinder(int max_freq,
+                      bool force_highfreq_search,
+                      bool exprt,
+                      std::experimental::filesystem::path outdir) :
+                      max_freq{max_freq}, exprt{exprt},
+                      force_highfreq_search{force_highfreq_search},
+                      outdir{std::move(outdir)} {
         ensure_dir_existance(this->outdir);
     }
 
