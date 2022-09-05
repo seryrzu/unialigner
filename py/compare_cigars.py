@@ -34,9 +34,6 @@ def main():
                 elif mode == 'D':
                     cx += length
 
-    print(sorted(list(all_coords[0]))[:100])
-    print()
-    print(sorted(list(all_coords[1]))[:100])
     print(len(all_coords[0]), len(all_coords[1]))
     print(len(all_coords[0].intersection(all_coords[1])))
     print(len(all_coords[0].intersection(all_coords[1])) / min(len(all_coords[0]), len(all_coords[1])))
