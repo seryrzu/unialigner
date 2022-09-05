@@ -56,21 +56,31 @@ def est_mism_shortindel_rate(params):
             parsed_cigar, cnt = parse_cigar(f.readline())
 
         norm_alignment_len = 0
-        len_mism = 0
-        len_short_indels= 0
+        n_mism, n_short_indels, n_long_indels = 0, 0, 0
+        len_mism, len_short_indels, len_long_indels = 0, 0, 0
+        max_indel = 0
         for length, mode in parsed_cigar:
             if mode == "X":
+                n_mism += 1
                 len_mism += length
             if mode in "ID":
                 if length > params.max_short_indel_len:
+                    n_long_indels += 1
+                    len_long_indels += length
+                    max_indel = max(max_indel, length)
                     continue
-                len_short_indels += length
+                else:
+                    n_short_indels += 1
+                    len_short_indels += length
             norm_alignment_len += length
-        print(norm_alignment_len,
-              len_mism,
-              len_short_indels,
-              len_mism / norm_alignment_len,
-              len_short_indels / norm_alignment_len)
+
+        print('norm_alignment_len = ', norm_alignment_len)
+        print('n_mism = ', n_mism, 'len_mism = ', len_mism)
+        print('n_short_indels = ', n_short_indels, 'len_short_indels = ', len_short_indels)
+        print('n_long_indels = ', n_long_indels, 'len_long_indels = ', len_long_indels)
+        print('len_mism / norm_alignment_len', len_mism / norm_alignment_len)
+        print('len_short_indels / norm_alignment_len', len_short_indels / norm_alignment_len)
+        print('max_indel', max_indel)
 
 
 
