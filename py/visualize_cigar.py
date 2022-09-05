@@ -46,6 +46,7 @@ def main():
     plt.xlabel(params.asm1_name)
     plt.ylabel(params.asm2_name)
     plt.title(params.title)
+    plt.axis('square')
     plt.savefig(os.path.join(params.output, 'cigar.pdf'), format='pdf')
 
 main()
