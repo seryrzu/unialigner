@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--asm1-name", default="")
     parser.add_argument("--asm2-name", default="")
     parser.add_argument("--legend", default="")
+    parser.add_argument("--title", default="")
     params = parser.parse_args()
 
 
@@ -27,7 +28,7 @@ def main():
             print(cnt)
             for len, mode in parsed_cigar:
                 len = int(len)
-                if mode == 'M' or mode == 'S':
+                if mode == 'M' or mode == 'X' or mode == '=':
                     cx += len
                     cy += len
                 elif mode == 'I':
@@ -44,6 +45,7 @@ def main():
         plt.legend(params.legend.split(','))
     plt.xlabel(params.asm1_name)
     plt.ylabel(params.asm2_name)
+    plt.title(params.title)
     plt.savefig(os.path.join(params.output, 'cigar.pdf'), format='pdf')
 
 main()
