@@ -111,7 +111,7 @@ void Cigar::Summary(logging::Logger &logger) const {
 
 std::ostream &minseq::operator<<(std::ostream &os, const Cigar &cigar) {
     for (const CigarFragment &fragment : cigar.cigar_vec) {
-        os << fragment.length << cigar_mode2str(fragment.mode) << "\n";
+        os << fragment.length << cigar_mode2str(fragment.mode);
     }
     return os;
 }
