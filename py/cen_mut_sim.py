@@ -26,7 +26,7 @@ def read_hors(hor_fn, seq_fn):
             hors.append(HORBlock(line, seq))
     return hors
 
-def mutate(seq, mism=0.001, delet=0.0005, ins=0.0005):
+def mutate(seq, mism=0.001, delet=0.0001, ins=0.0001):
     mutseq = []
     uncompr_cigar = []
     choice = np.random.choice(list('mxdi'),
