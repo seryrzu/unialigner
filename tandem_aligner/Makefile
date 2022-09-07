@@ -20,6 +20,7 @@ test_launch: tandem_aligner
 		-o test_dataset/test_launch \
 		--debug
 	grep -q "Thank you for using TandemAligner!" test_dataset/test_launch/tandem_aligner.log
+	diff test_dataset/test_launch/cigar.txt test_dataset/true_cigar.txt
 
 clean:
 	-rm -r build
