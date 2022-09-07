@@ -1,4 +1,4 @@
-# Tandem Aligner
+# TandemAligner
 
 ### Version 0.1
 
