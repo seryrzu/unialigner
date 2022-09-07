@@ -12,7 +12,7 @@
 #include "min_interval.hpp"
 #include "sparse_aligner.hpp"
 
-namespace minseq {
+namespace tandem_aligner {
 
 struct MinSeqTask {
     std::list<CigarFragment>::iterator cigar_it;
@@ -20,7 +20,7 @@ struct MinSeqTask {
     int64_t st2{0}, len2{0};
 };
 
-class MinSeqAligner {
+class TandemAligner {
     logging::Logger &logger;
     int max_freq{1};
     bool force_highfreq_search{false};
@@ -168,7 +168,7 @@ class MinSeqAligner {
     }
 
  public:
-    MinSeqAligner(logging::Logger &logger,
+    TandemAligner(logging::Logger &logger,
                   std::experimental::filesystem::path output_dir,
                   const int max_freq,
                   const bool force_highfreq_search) :
@@ -237,4 +237,4 @@ class MinSeqAligner {
     }
 };
 
-} // namespace minseq
+} // namespace tandem_aligner

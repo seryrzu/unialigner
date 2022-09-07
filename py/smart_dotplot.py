@@ -105,10 +105,10 @@ def get_traces(al_X, al_Y, edlib_X, edlib_Y, gt_X, gt_Y, Xs, Ys):
 def main():
     params = parse_args()
 
-    logfn = os.path.join(params.outdir, 'minseq.log')
+    logfn = os.path.join(params.outdir, 'tandem_aligner_smart_dotplot.log')
     global logger
     logger = get_logger(logfn,
-                        logger_name='minseq')
+                        logger_name='tandem_aligner')
     logger.info(f'Constructing dotplot with {SCRIPT_FN} started')
     logger.info('cmd: {}'.format(sys.argv))
     logger.info('git hash: {}'.format(get_git_revision_short_hash()))

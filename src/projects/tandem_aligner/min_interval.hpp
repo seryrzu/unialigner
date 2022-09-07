@@ -13,7 +13,7 @@
 #include "lcp_interval.hpp"
 #include "common/dir_utils.hpp"
 
-namespace minseq {
+namespace tandem_aligner {
 
 class MinInterval {
     int len{0};

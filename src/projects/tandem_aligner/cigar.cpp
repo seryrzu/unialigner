@@ -5,9 +5,9 @@
 #include "cigar.hpp"
 #include "sequences/verify.hpp"
 
-using namespace minseq;
+using namespace tandem_aligner;
 
-inline char minseq::cigar_mode2str(const CigarMode &fragment) {
+inline char tandem_aligner::cigar_mode2str(const CigarMode &fragment) {
     if (fragment==CigarMode::M) {
         return 'M';
     } else if (fragment==CigarMode::I) {
@@ -109,7 +109,7 @@ void Cigar::Summary(logging::Logger &logger) const {
     }
 }
 
-std::ostream &minseq::operator<<(std::ostream &os, const Cigar &cigar) {
+std::ostream &tandem_aligner::operator<<(std::ostream &os, const Cigar &cigar) {
     for (const CigarFragment &fragment : cigar.cigar_vec) {
         os << fragment.length << cigar_mode2str(fragment.mode);
     }

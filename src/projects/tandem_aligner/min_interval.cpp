@@ -4,10 +4,10 @@
 
 #include "min_interval.hpp"
 
-using namespace minseq;
+using namespace tandem_aligner;
 
-std::ostream &minseq::operator<<(std::ostream &os,
-                                 const MinInterval &interval) {
+std::ostream &tandem_aligner::operator<<(std::ostream &os,
+                                         const MinInterval &interval) {
     os << interval.GetLen() << "\t";
     std::copy(interval.GetFstCoords().begin(),
               interval.GetFstCoords().end(),
@@ -20,16 +20,16 @@ std::ostream &minseq::operator<<(std::ostream &os,
     return os;
 }
 
-std::ostream &minseq::operator<<(std::ostream &os,
-                                 const MinIntervalCollection &col) {
+std::ostream &tandem_aligner::operator<<(std::ostream &os,
+                                         const MinIntervalCollection &col) {
     for (const auto &[clas, interval] : col) {
         os << col.GetFstFreq() << "\t" << col.GetSndFreq() << "\t" << interval;
     }
     return os;
 }
 
-std::ostream &minseq::operator<<(std::ostream &os,
-                                 const MinIntervalCollections &cols) {
+std::ostream &tandem_aligner::operator<<(std::ostream &os,
+                                         const MinIntervalCollections &cols) {
     os << "FstFreq\tSndFreq\tLength\tFstStarts\t"
           "SndStarts\n";
     for (const MinIntervalCollection &col : cols) {

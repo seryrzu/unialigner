@@ -10,7 +10,7 @@
 #include <list>
 #include "common/logging.hpp"
 
-namespace minseq {
+namespace tandem_aligner {
 
 enum class CigarMode { M, I, D, X };
 
@@ -81,4 +81,4 @@ class Cigar {
 
 std::ostream &operator<<(std::ostream &os, const Cigar &cigar);
 
-} // namespace minseq
+} // namespace tandem_aligner

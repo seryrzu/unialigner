@@ -7,7 +7,7 @@
 #include <min_queue/min_queue.hpp>
 #include <suffix_array/suffix_array.hpp>
 
-namespace minseq {
+namespace tandem_aligner {
 
 using LCP = suffix_array::LCP<std::string>;
 using SuffixArray = suffix_array::SuffixArray<std::string>;
@@ -33,4 +33,4 @@ class LCPInterval {
     [[nodiscard]] int64_t GetSndFreq() const { return snd_freq; }
 };
 
-} // End namespace minseq
+} // End namespace tandem_aligner

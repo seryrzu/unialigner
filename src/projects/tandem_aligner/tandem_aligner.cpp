@@ -8,7 +8,7 @@
 #include <common/cl_parser.hpp>
 #include <common/logging.hpp>
 
-#include "minseq.hpp"
+#include "tandem_aligner.hpp"
 
 int main(int argc, char **argv) {
     CLParser parser{{"output-dir=", "first=", "second=", "max_count=50",
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
         logger << argv[i] << " ";
     }
     logger << std::endl;
-    logging::logGit(logger, output_dir / "version.txt");
+    logging::logGit(logger, output_dir/"version.txt");
 
     const std::experimental::filesystem::path first_path =
         std::experimental::filesystem::canonical(parser.getValue("first"));
@@ -50,7 +50,10 @@ int main(int argc, char **argv) {
     int max_freq = std::stoi(parser.getValue("max_count"));
 
     bool force_highfreq_search = parser.getCheck("force_highfreq_search");
-    minseq::MinSeqAligner(logger, output_dir, max_freq, force_highfreq_search)
+    tandem_aligner::TandemAligner(logger,
+                                  output_dir,
+                                  max_freq,
+                                  force_highfreq_search)
         .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";

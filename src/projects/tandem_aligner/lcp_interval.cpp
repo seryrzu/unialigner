@@ -4,7 +4,7 @@
 
 #include "lcp_interval.hpp"
 
-using namespace minseq;
+using namespace tandem_aligner;
 
 LCPInterval::LCPInterval(const LCP &lcp,
                          const SuffixArray &suf_arr,

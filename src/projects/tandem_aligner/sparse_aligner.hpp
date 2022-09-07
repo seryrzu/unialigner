@@ -6,7 +6,7 @@
 
 #include "cigar.hpp"
 
-namespace minseq {
+namespace tandem_aligner {
 
 class MinFreqInterval {
     int len{0};
@@ -207,4 +207,4 @@ class SparseAligner {
     }
 };
 
-} // namespace minseq
+} // namespace tandem_aligner
