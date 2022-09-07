@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("-k", type=int, default=7)
     parser.add_argument("--rare", type=int, default=1)
     parser.add_argument("--alignment", default="")
+    parser.add_argument("--axis-mult", type=float, default=1.)
     params = parser.parse_args()
 
     params.asm1 = expandpath(params.asm1)
@@ -153,11 +154,12 @@ def main():
 
     pairs = get_pairs(kmer2coords1, kmer2coords2)
     plt.figure(figsize=(5, 5), dpi=200)
-    plt.plot([pair[0] for pair in pairs],
-             [pair[1] for pair in pairs],
+    plt.plot([pair[0] * params.axis_mult for pair in pairs],
+             [pair[1] * params.axis_mult for pair in pairs],
              marker=".", ms=0.5, alpha=1, color='black')
     if params.alignment != "":
-        plt.plot(X_al, Y_al, color='red')
+        plt.plot([x * params.axis_mult for x in X_al],
+                 [y * params.axis_mult for y in Y_al], color='red')
     plt.xlabel(asm1_name)
     plt.ylabel(asm2_name)
     plt.xlim(0)

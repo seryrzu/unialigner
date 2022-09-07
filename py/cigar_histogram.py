@@ -16,12 +16,17 @@ def plot_hist(params):
         stats = defaultdict(list)
         with open(input_file) as f:
             parsed_cigar, cnt = parse_cigar(f.readline())
+            i = 0
             for length, mode in parsed_cigar:
-                stats[mode].append(length)
+                stats[mode].append((length, i))
+                if mode != 'I':
+                    i += length
         # mode_name = {"M": "Match", "X": "Mismatch", "I": "Insertion", "D": "Deletion"}
         mode_name = {"I": "Insertion", "D": "Deletion"}
         for m, mode in mode_name.items():
-            plt.hist(stats[m], bins = np.arange(0, 20000 + 200, 200), alpha = 0.8)
+            plt.hist([x[0] for x in stats[m]],
+                     bins = np.arange(0, 20000 + 200, 200),
+                     alpha = 0.8)
         # plt.title(mode)
         plt.xlabel("Length")
         plt.ylabel("Count")
@@ -32,15 +37,20 @@ def plot_hist(params):
         if params.hor_len:
             hor_len = params.hor_len
             hor_indel_lens = []
+            norm2real = defaultdict(list)
+            hor_indel2pos = defaultdict(list)
             for m, mode in mode_name.items():
-                for k in stats[m]:
-                    if abs(k - round(k/hor_len) * hor_len) < 0.05:
-                        hor_indel_lens.append(int(round(k/hor_len)))
+                for k, pos in stats[m]:
+                    if round(k/hor_len) and abs(k - round(k/hor_len) * hor_len) / hor_len < 0.05:
+                        hor_mult = int(round(k/hor_len))
+                        hor_indel_lens.append(hor_mult)
+                        norm2real[hor_mult].append(k)
+                        hor_indel2pos[hor_mult].append(pos)
 
             counter = Counter(hor_indel_lens)
             print("Counter of hor_indel_lens:\n")
             for i in range(1, max(counter) + 1):
-                print(i, counter[i])
+                print(i, counter[i], sorted(norm2real[i]))
             print("\nNormalized counter (frequences):")
             for i in range(1, max(counter) + 1):
                 print(i, int(round(counter[i] / len(hor_indel_lens) * 100)))
@@ -48,6 +58,13 @@ def plot_hist(params):
             average = sum(hor_indel_lens) / len(hor_indel_lens)
             print("Average length (estimated parameter for Poisson): ", average)
             print(spstats.poisson.pmf([1, 2, 3, 4, 5, 6], mu=average - 1, loc=1))
+
+            for height, positions in sorted(hor_indel2pos.items()):
+                plt.scatter(np.array(positions) / 1e6, [height] * len(positions), marker = '.')
+            plt.legend(sorted(hor_indel2pos))
+            plt.ylabel("HOR-indel multiplicity")
+            plt.xlabel("cenX-1 (Mb)")
+            plt.savefig(os.path.join(params.output, input_file + "_hor_indels.pdf"), format="pdf")
 
 
 def est_mism_shortindel_rate(params):
