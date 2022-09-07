@@ -42,7 +42,13 @@ int main(int argc, char ** argv) {
     size_t max_rare_freq = std::stoi(parser.getValue("max_rare_freq"));
     size_t tol_gap = std::stoi(parser.getValue("tol_gap"));
 
-    tandem_aligner::tandem_align<unsigned __int128>(first_path, second_path, k, max_rare_freq, tol_gap, output_dir, logger);
+    rare_kmer_aligner::rare_kmer_align<unsigned __int128>(first_path,
+                                                          second_path,
+                                                          k,
+                                                          max_rare_freq,
+                                                          tol_gap,
+                                                          output_dir,
+                                                          logger);
 
     return 0;
 }

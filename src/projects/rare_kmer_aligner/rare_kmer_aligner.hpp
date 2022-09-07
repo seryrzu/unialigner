@@ -15,7 +15,7 @@
 
 #include "rolling_hash/rolling_hash.hpp"
 
-namespace tandem_aligner {
+namespace rare_kmer_aligner {
 
     namespace details {
 
@@ -289,12 +289,12 @@ namespace tandem_aligner {
     }
 
     template <typename htype>
-    void tandem_align(const std::experimental::filesystem::path & first_path,
-                      const std::experimental::filesystem::path & second_path,
-                      const size_t k, const size_t max_rare_freq, const size_t tol_gap,
-                      const std::experimental::filesystem::path & outdir,
-                      logging::Logger & logger,
-                      const size_t base = 239) {
+    void rare_kmer_align(const std::experimental::filesystem::path & first_path,
+                         const std::experimental::filesystem::path & second_path,
+                         const size_t k, const size_t max_rare_freq, const size_t tol_gap,
+                         const std::experimental::filesystem::path & outdir,
+                         logging::Logger & logger,
+                         const size_t base = 239) {
         io::SeqReader first_reader(first_path);
         std::vector<Contig> first_vec { first_reader.readAllContigs() };
         VERIFY(first_vec.size() == 1);
@@ -352,5 +352,5 @@ namespace tandem_aligner {
         logger.info() << "Matching blocks exported to " << blocks_fn << "\n";
     }
 
-} // End namespace tandem_aligner
+} // End namespace rare_kmer_aligner
 
