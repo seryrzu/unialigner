@@ -1,3 +1,2 @@
 add_subdirectory(rare_kmer_aligner)
 add_subdirectory(tandem_aligner)
-add_subdirectory(cubic_naive)
