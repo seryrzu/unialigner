@@ -13,7 +13,7 @@ As an input, it takes two strings in fasta format and outputs the alignment in C
 
 ## Building from source
 
-To build TandemAligner from source, one needs GNU make and C++-20 compatible compiler:
+To build TandemAligner from source, one needs Linux, GNU make and C++-20 compatible compiler (typically takes less than 5 minutes):
 
 ```
   git clone git@github.com:seryrzu/tandem_aligner.git
@@ -23,7 +23,7 @@ To build TandemAligner from source, one needs GNU make and C++-20 compatible com
 
 Then TandemAligner will be available at `./build/bin/tandem_aligner`.
 
-To launch a test launch: `make test_launch`.
+To launch a test launch: `make test_launch` (typically instant).
 
 ## Synopsis
 
