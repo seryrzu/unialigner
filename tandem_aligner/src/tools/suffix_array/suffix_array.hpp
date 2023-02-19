@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <vector>
 
 namespace suffix_array {
