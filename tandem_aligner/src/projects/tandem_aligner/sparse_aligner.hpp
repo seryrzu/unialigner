@@ -2,6 +2,8 @@
 // Created by Andrey Bzikadze on 05/18/22.
 //
 
+// TODO: Use bridge-find instead of numbef of paths 
+
 #pragma once
 
 #include "cigar.hpp"
@@ -191,28 +193,20 @@ class SparseAligner {
     }
 
     int no_paths(int i, const std::vector<std::vector<int>> &backtracks, std::vector<long long> &n_paths){
-        // TOREMOVE
         
         for (int pred: backtracks[i]){
             if (pred == -1){
             n_paths[i] += (long long)1;
-            //TOREMOVE
-            logger.info()<<"source at"<<i<<" for "<<pred<<"\n";
             }
             else if (n_paths[pred] == 0){
                 n_paths[i] += (long long) no_paths(pred,backtracks,n_paths);
-
-                //TOREMOVE
-                logger.info()<<"n_paths filled at"<<i<<" for "<<pred<<"\n";
             }
             else{
             n_paths[i] += (long long) n_paths[pred];
-            //TOREMOVE
-            logger.info()<<"n_paths used at"<<i<<" for "<<pred<<"\n";
             }
         }
-        //TOREMOVE
-        logger.info()<<"n_paths at "<<i<<" is "<<n_paths[i]<<" size: "<<sizeof(n_paths[i])<<"\n";
+        if(n_paths[i]<1 or n_paths[i]>= LONG_LONG_MAX) 
+            throw std::overflow_error("Sorry the number of paths exceeded long range, can't use --allpaths with this input");
         return n_paths[i];
     }
 
