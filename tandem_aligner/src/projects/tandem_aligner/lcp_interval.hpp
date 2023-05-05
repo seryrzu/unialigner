@@ -13,6 +13,8 @@ using LCP = suffix_array::LCP<std::string>;
 using SuffixArray = suffix_array::SuffixArray<std::string>;
 
 class LCPInterval {
+
+public:
     const LCP &lcp;
     const SuffixArray &suf_arr;
     const int64_t fst_len{0};
@@ -20,7 +22,7 @@ class LCPInterval {
     int64_t fst_freq{0}, snd_freq{0};
     min_queue::MinQueue<LCP> min_queue;
 
- public:
+//  public:
     LCPInterval(const LCP &lcp,
                 const SuffixArray &suf_arr,
                 const int64_t fst_len);

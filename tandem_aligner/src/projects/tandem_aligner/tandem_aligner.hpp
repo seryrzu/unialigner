@@ -26,6 +26,7 @@ class TandemAligner {
     bool force_highfreq_search{false};
     const std::experimental::filesystem::path output_dir;
     bool allpaths;
+    bool max_unique;
 
     [[nodiscard]] std::string ReadContig(const std::experimental::filesystem::path &path) const {
         io::SeqReader reader(path);
@@ -62,16 +63,15 @@ class TandemAligner {
         const suffix_array::SuffixArray<std::string> suf_arr(concat);
         logger.debug() << "Building LCP array...\n";
         const suffix_array::LCP<std::string> lcp(suf_arr);
-        //logger.debug() << lcp.
         MinIntervalFinder
             segment_finder(max_freq, force_highfreq_search, exprt,
-                           output_dir/"min_interval_finder");
+                           output_dir/"min_interval_finder", max_unique);
         logger.debug() << "Computing rare segments...\n";
         const MinIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
 
         if (exprt) {
-            std::ofstream os(output_dir/"shortest_matches.tsv");
+            std::ofstream os(output_dir/(max_unique?"longest_matches.tsv":"shortest_matches.tsv"));
             os << int_col;
         }
 
@@ -173,9 +173,10 @@ class TandemAligner {
                   std::experimental::filesystem::path output_dir,
                   const int max_freq,
                   const bool force_highfreq_search,
-                  const bool allpaths) :
+                  const bool allpaths,
+                  const bool max_unique) :
         logger{logger}, output_dir{std::move(output_dir)}, max_freq{max_freq},
-        force_highfreq_search{force_highfreq_search}, allpaths{allpaths} {}
+        force_highfreq_search{force_highfreq_search}, allpaths{allpaths}, max_unique{max_unique} {}
 
     void Find(const std::experimental::filesystem::path &first_path,
               const std::experimental::filesystem::path &second_path) const {

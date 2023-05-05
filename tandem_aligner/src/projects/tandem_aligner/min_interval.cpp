@@ -42,9 +42,20 @@ std::ostream &tandem_aligner::operator<<(std::ostream &os,
 MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
     VERIFY(lcp.PSufArr()!=nullptr);
     const SuffixArray suf_arr = *lcp.PSufArr();
+    //TOREMOVE
+    // for (auto lcp_elem: lcp){
+    //     std::cout<<lcp_elem<<",";
+    // }
+    // std::cout<<"\n suff_arr:\n";
+    // for (auto suf: suf_arr){
+    //     std::cout<<suf<<",";
+    // }
+    // std::cout<<"\n";
     std::vector<MinRarePrefix> mrp_vec;
     for (auto [found_anchor, w] = std::make_pair<bool, int>(false, 2);
          not found_anchor and w <= 2*std::min(fst_len, max_freq); w++) {
+
+
         for (int i = 1; i <= w - 1; ++i) {
             mrp_vec.emplace_back(i, w - i, suf_arr.size());
         }
@@ -58,7 +69,7 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
         while (j < suf_arr.size()) {
             cur = lcp_interval.GetMin();
             fst_freq = lcp_interval.GetFstFreq();
-            snd_freq = lcp_interval.GetSndFreq();
+            snd_freq = lcp_interval.GetSndFreq();            
             if (j < suf_arr.size() - 1) {
                 lcp_interval.ExtendRight();
                 next = lcp_interval.GetMin();
@@ -68,7 +79,8 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
             if (cur > std::max(prev, next) and
                 std::min(fst_freq, snd_freq) >= min_freq and
                 std::max(fst_freq, snd_freq) <= (w+1) / 2) {
-                //std::cout << i << " " << suf_arr[i] << " " << j << " "
+                // // TOREMOVE
+                // std::cout << i << " " << suf_arr[i] << " " << j << " "
                 //          << suf_arr[j] << " "
                 //          << fst_freq << " " << snd_freq << " "
                 //          << prev << " " << cur << " " << next << "\n";
@@ -84,8 +96,14 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
                     // VERIFY(srp_vec[srp_index].srp[suf_arr[k]]==0);
                     // srp_vec[srp_index].srp[suf_arr[k]] =
                     //     {i, std::max(prev, next) + 1};
+
                     mrp_vec[srp_index][suf_arr[k]] =
-                        {i, std::max(prev, next) + 1};
+                        {i,max_unique?cur:(std::max(prev, next) + 1)}; 
+                    // //TOREMOVE
+                    // std::cout<<"suf_arr[k="<<k<<"]"<<suf_arr[k]<<"\n";
+                    // //TOREMOVE
+                    // std::cout<<"mrp_vec["<<srp_index<<"][suf_arr["<<k<<"]] = "<<i<<","<<mrp_vec[srp_index][suf_arr[k]].len<<"\n";
+
                 }
             }
             prev = next;
@@ -110,14 +128,20 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
 
             int en = st + mrp[st].len;
             int cur_st = en2st[en].coord;
-            if (st > cur_st or cur_st==-1)
+            if ((max_unique?(st < cur_st):(st > cur_st)) or cur_st==-1) 
                 en2st[en] = {mrp[st].clas, st};
+            // //TOREMOVE    
+            // std::cout<<"start: "<<st <<", en2st["<<en<<"]\t"<<en2st[en].lcp_class<<","<<en2st[en].coord<<"\n";
         }
 
         auto &col = cols.emplace_back(mrp.fst_freq, mrp.snd_freq);
         for (int en = 0; en < mrp.Size(); ++en) {
             int clas{en2st[en].lcp_class}, st{en2st[en].coord};
+
             if (clas!=-1) {
+                // //TOREMOVE
+                // std::cout<<"en: "<<en<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
+
                 col.Emplace(clas, en - st);
                 if (st < fst_len) {
                     col[clas].PushBackFst(st);
@@ -144,7 +168,7 @@ void MinIntervalFinder::OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
         }
     }
 }
-
+   
 [[nodiscard]] MinIntervalCollections
 MinIntervalFinder::Find(const suffix_array::LCP<std::string> &lcp,
                         const int fst_len) const {

@@ -80,6 +80,7 @@ class MinIntervalFinder {
     bool force_highfreq_search{false};
     bool exprt{true};
     std::experimental::filesystem::path outdir;
+    bool max_unique{false};
 
     struct MinRarePrefix {
         struct ClassMinLen {
@@ -123,10 +124,12 @@ class MinIntervalFinder {
     MinIntervalFinder(int max_freq,
                       bool force_highfreq_search,
                       bool exprt,
-                      std::experimental::filesystem::path outdir) :
+                      std::experimental::filesystem::path outdir,
+                      bool max_unique) :
                       max_freq{max_freq}, exprt{exprt},
                       force_highfreq_search{force_highfreq_search},
-                      outdir{std::move(outdir)} {
+                      outdir{std::move(outdir)},
+                      max_unique{max_unique} {
         ensure_dir_existance(this->outdir);
     }
 

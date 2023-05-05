@@ -36,8 +36,8 @@ def main():
                 elif mode == 'D':
                     cx += len
 
-                x.append(cx / 1e6)
-                y.append(cy / 1e6)
+                x.append(cx)
+                y.append(cy)
 
         plt.plot(x, y)
 
@@ -47,6 +47,6 @@ def main():
     plt.ylabel(params.asm2_name)
     plt.title(params.title)
     plt.axis('square')
-    plt.savefig(os.path.join(params.output, 'cigar.pdf'), format='pdf')
+    plt.savefig(os.path.join(params.output, 'cigar'))
 
 main()

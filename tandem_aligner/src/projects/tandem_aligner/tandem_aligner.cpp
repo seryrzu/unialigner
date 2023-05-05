@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv) {
     CLParser parser{{"output-dir=", "first=", "second=", "max_count=50",
-                     "debug", "force_highfreq_search", "allpaths"}, {},
+                     "debug", "force_highfreq_search", "allpaths", "max_unique"}, {},
                     {"o=output-dir", "f=first", "s=second", "f=max_count"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
@@ -51,11 +51,13 @@ int main(int argc, char **argv) {
 
     bool force_highfreq_search = parser.getCheck("force_highfreq_search");
     bool allpaths = parser.getCheck("allpaths");
+    bool max_unique = parser.getCheck("max_unique");
     tandem_aligner::TandemAligner(logger,
                                   output_dir,
                                   max_freq,
                                   force_highfreq_search, 
-                                  allpaths)
+                                  allpaths,
+                                  max_unique)
         .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";

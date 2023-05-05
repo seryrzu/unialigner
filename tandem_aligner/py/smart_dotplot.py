@@ -17,8 +17,9 @@ SCRIPT_FN = os.path.realpath(__file__)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--shortest-matches", required=True)
+    parser.add_argument("-i", "--indir", required=True)
     parser.add_argument("-o", "--outdir", required=True)
+    parser.add_argument("--shortest_matches", default=True, type =int)
     parser.add_argument("--asm1-name", default="")
     parser.add_argument("--asm2-name", default="")
     parser.add_argument("--min-length", default=20, type=int)
@@ -82,22 +83,22 @@ def get_traces(al_X, al_Y, edlib_X, edlib_Y, gt_X, gt_Y, Xs, Ys):
                                    mode='markers+lines',
                                    name=str(freq),
                                    legendgroup=str(freq),
-                                   marker=dict(size=2),
-                                   line=dict(width=1),
+                                   marker=dict(size=6),
+                                   line=dict(width=4),
                                    showlegend=True))
     traces.append(go.Scattergl(x=al_X, y=al_Y, mode='lines', name='TandemAligner', legendgroup='TandemAligner',
-                               marker=dict(size=2),
-                               line=dict(color='black', width=4),
+                               marker=dict(size=1),
+                               line=dict(color='black', width=2),
                                showlegend=True))
     if edlib_Y is not None:
         traces.append(go.Scattergl(x=edlib_X, y=edlib_Y, mode='lines', name='Edlib', legendgroup='Edlib',
                                    marker=dict(size=2),
-                                   line=dict(color='red', width=4),
+                                   line=dict(color='red', width=2),
                                    showlegend=True))
     if gt_Y is not None:
         traces.append(go.Scattergl(x=gt_X, y=gt_Y, mode='lines', name='Ground Truth', legendgroup='Ground Truth',
-                                   marker=dict(size=2),
-                                   line=dict(color='green', width=4),
+                                   marker=dict(size=3),
+                                   line=dict(color='green', width=2),
                                    showlegend=True))
     return traces
 
@@ -113,18 +114,18 @@ def main():
     logger.info('cmd: {}'.format(sys.argv))
     logger.info('git hash: {}'.format(get_git_revision_short_hash()))
 
-    df = pd.read_csv(os.path.join(params.shortest_matches, 'shortest_matches.tsv'), header=0, sep='\t')
-
+    df = pd.read_csv(os.path.join(params.indir,"shortest_matches.tsv" if params.shortest_matches else "longest_matches.tsv"), header=0, sep='\t')
     Xs, Ys = get_intervals(params, df)
-    al_X, al_Y = parse_cigar(os.path.join(params.shortest_matches, 'cigar.txt'))
+
+    al_X, al_Y = parse_cigar(os.path.join(params.indir, 'cigar_primary.txt'))
     has_edlib = params.edlib != ''
     edlib_X, edlib_Y = None, None
     if has_edlib:
-        edlib_X, edlib_Y = parse_cigar(os.path.join(params.shortest_matches, params.edlib))
+        edlib_X, edlib_Y = parse_cigar(os.path.join(params.indir, params.edlib))
 
     gt_X, gt_Y = None, None
     if params.ground_truth:
-        gt_X, gt_Y = parse_cigar(os.path.join(params.shortest_matches, params.ground_truth))
+        gt_X, gt_Y = parse_cigar(os.path.join(params.indir, params.ground_truth))
 
     # n_colors = 1 + len(Xs)
     # colors = px.colors.sample_colorscale("plotly3", [n / (n_colors - 1) for n in range(n_colors)])
