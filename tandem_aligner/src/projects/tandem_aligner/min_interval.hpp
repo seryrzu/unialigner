@@ -12,6 +12,7 @@
 #include <experimental/filesystem>
 #include "lcp_interval.hpp"
 #include "common/dir_utils.hpp"
+#include "common/logging.hpp"
 
 namespace tandem_aligner {
 
@@ -81,6 +82,7 @@ class MinIntervalFinder {
     bool exprt{true};
     std::experimental::filesystem::path outdir;
     bool max_unique{false};
+    logging::Logger &logger;
 
     struct MinRarePrefix {
         struct ClassMinLen {
@@ -126,11 +128,13 @@ class MinIntervalFinder {
                       bool force_highfreq_search,
                       bool exprt,
                       std::experimental::filesystem::path outdir,
-                      bool max_unique) :
+                      bool max_unique,
+                      logging::Logger &logger) :
                       max_freq{max_freq}, exprt{exprt},
                       force_highfreq_search{force_highfreq_search},
                       outdir{std::move(outdir)},
-                      max_unique{max_unique} {
+                      max_unique{max_unique},
+                      logger{logger} {
         ensure_dir_existance(this->outdir);
     }
 

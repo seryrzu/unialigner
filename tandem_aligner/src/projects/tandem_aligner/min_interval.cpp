@@ -3,6 +3,7 @@
 //
 
 #include "min_interval.hpp"
+#include <unordered_map>
 
 using namespace tandem_aligner;
 
@@ -137,9 +138,8 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
         auto &col = cols.emplace_back(mrp.fst_freq, mrp.snd_freq);
 
         if (max_unique){
-            std::vector<ClassCoord> maxen2st(mrp.Size() + 1);
-            std::vector<int> maxen2minen(mrp.Size() + 1);
-
+            std::unordered_map<int,ClassCoord> maxen2st;
+            std::unordered_map<int, int> maxen2minen;
             for (int en = 0; en < mrp.Size(); ++en) {
                 int clas{en2st[en].lcp_class}, st{en2st[en].coord};
                     if (clas!=-1) {
@@ -151,17 +151,19 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
                     }
                     if ((maxen2minen[maxen] == 0)or (en > maxen2minen[maxen])){
                         maxen2minen[maxen] = en;
+                        //TOREMOVE
                         // std::cout<<"e: maxen: "<<maxen<<", st: "<<st<<", minen"<<maxen2minen[maxen]<<"\n";
                     }
                 }
             }
 
-             for (int maxen = 0; maxen < mrp.Size(); ++maxen) {
-                int clas{maxen2st[maxen].lcp_class}, st{maxen2st[maxen].coord}, minen{maxen2minen[maxen]};
+             for (auto maxen2st_elem:maxen2st ) {
+                int maxen{maxen2st_elem.first}, clas{maxen2st_elem.second.lcp_class}, st{maxen2st_elem.second.coord};
+                int minen{maxen2minen[maxen]};
 
                 if (clas!=-1) {
-                    // //TOREMOVE
-                    // std::cout<<"en: "<<maxen<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
+                    //TOREMOVE
+                    //  logger.info()<<"en: "<<maxen<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
 
                     col.Emplace(clas, minen - st);
                     if (st < fst_len) {
