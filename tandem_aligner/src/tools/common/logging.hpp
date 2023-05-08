@@ -49,7 +49,7 @@ class TimeSpace {
             t = "Gb";
         }
         ss << itos(worktime/60/60, 2) << ":" << itos(worktime/60%60, 2) << ":"
-           << itos(worktime%60, 2) << " " << mem << t << " ";
+           << itos(worktime%60, 2) <<"." << ((finish.tv_sec*1000+ finish.tv_nsec/1000000) - (start.tv_sec*1000+start.tv_nsec/1000000))%1000<< " " << mem << t << " ";
         return ss.str();
     }
 };
