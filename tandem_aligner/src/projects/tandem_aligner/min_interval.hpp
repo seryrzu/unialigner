@@ -86,6 +86,7 @@ class MinIntervalFinder {
         struct ClassMinLen {
             int clas{-1};
             int len{std::numeric_limits<int>::max()};
+            int maxlen{std::numeric_limits<int>::max()};
 
             [[nodiscard]] bool IsInit() const {
                 return clas!=-1 and len!=std::numeric_limits<int>::max();

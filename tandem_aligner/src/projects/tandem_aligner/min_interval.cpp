@@ -98,7 +98,7 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
                     //     {i, std::max(prev, next) + 1};
 
                     mrp_vec[srp_index][suf_arr[k]] =
-                        {i,max_unique?cur:(std::max(prev, next) + 1)}; 
+                        {i,(std::  max(prev, next) + 1), cur}; 
                     // //TOREMOVE
                     // std::cout<<"suf_arr[k="<<k<<"]"<<suf_arr[k]<<"\n";
                     // //TOREMOVE
@@ -128,25 +128,64 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
 
             int en = st + mrp[st].len;
             int cur_st = en2st[en].coord;
-            if ((max_unique?(st < cur_st):(st > cur_st)) or cur_st==-1) 
+            if ((st > cur_st) or cur_st==-1) 
                 en2st[en] = {mrp[st].clas, st};
             // //TOREMOVE    
-            // std::cout<<"start: "<<st <<", en2st["<<en<<"]\t"<<en2st[en].lcp_class<<","<<en2st[en].coord<<"\n";
+            // std::cout<<"start: "<<st <<", en2st["<<en<<"]\t"<<en2st[en].lcp_class<<","<<en2st[en].coord<<"\t"<<mrp[st].maxlen<<"\n";
         }
 
         auto &col = cols.emplace_back(mrp.fst_freq, mrp.snd_freq);
-        for (int en = 0; en < mrp.Size(); ++en) {
-            int clas{en2st[en].lcp_class}, st{en2st[en].coord};
 
-            if (clas!=-1) {
-                // //TOREMOVE
-                // std::cout<<"en: "<<en<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
+        if (max_unique){
+            std::vector<ClassCoord> maxen2st(mrp.Size() + 1);
+            std::vector<int> maxen2minen(mrp.Size() + 1);
 
-                col.Emplace(clas, en - st);
-                if (st < fst_len) {
-                    col[clas].PushBackFst(st);
-                } else {
-                    col[clas].PushBackSnd(st - fst_len - 1);
+            for (int en = 0; en < mrp.Size(); ++en) {
+                int clas{en2st[en].lcp_class}, st{en2st[en].coord};
+                    if (clas!=-1) {
+                    int maxen = st + mrp[st].maxlen;
+                    if ((maxen2st[maxen].coord == -1)or (st < maxen2st[maxen].coord)){
+                        maxen2st[maxen] = {clas, st};
+                        //TOREMOVE
+                        // std::cout<<"s: maxen: "<<maxen<<", st: "<<st<<", minen"<<maxen2minen[maxen]<<"\n";
+                    }
+                    if ((maxen2minen[maxen] == 0)or (en > maxen2minen[maxen])){
+                        maxen2minen[maxen] = en;
+                        // std::cout<<"e: maxen: "<<maxen<<", st: "<<st<<", minen"<<maxen2minen[maxen]<<"\n";
+                    }
+                }
+            }
+
+             for (int maxen = 0; maxen < mrp.Size(); ++maxen) {
+                int clas{maxen2st[maxen].lcp_class}, st{maxen2st[maxen].coord}, minen{maxen2minen[maxen]};
+
+                if (clas!=-1) {
+                    // //TOREMOVE
+                    // std::cout<<"en: "<<maxen<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
+
+                    col.Emplace(clas, minen - st);
+                    if (st < fst_len) {
+                        col[clas].PushBackFst(st);
+                    } else {
+                        col[clas].PushBackSnd(st - fst_len - 1);
+                    }
+                }
+            }
+
+        } else{
+            for (int en = 0; en < mrp.Size(); ++en) {
+                int clas{en2st[en].lcp_class}, st{en2st[en].coord};
+
+                if (clas!=-1) {
+                    // //TOREMOVE
+                    // std::cout<<"en: "<<en<<", clas: "<<clas<<", st: "<<st<<", "<<st - fst_len - 1<<"\n";
+
+                    col.Emplace(clas, en - st);
+                    if (st < fst_len) {
+                        col[clas].PushBackFst(st);
+                    } else {
+                        col[clas].PushBackSnd(st - fst_len - 1);
+                    }
                 }
             }
         }
