@@ -30,7 +30,7 @@ def expandpath(path):
 
 
 def cat(infns, outfile):
-    with open(outfile, 'w') as o:
+    with open(outfile, "w") as o:
         for fn in infns:
             with open(fn) as i:
                 for line in i:

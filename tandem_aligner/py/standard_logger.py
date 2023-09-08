@@ -2,11 +2,9 @@ import logging
 import sys
 
 
-def get_logger(filename,
-               logger_name='SD',
-               level=logging.INFO,
-               filemode='a',
-               stdout=True):
+def get_logger(
+    filename, logger_name="SD", level=logging.INFO, filemode="a", stdout=True
+):
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
 
@@ -14,7 +12,8 @@ def get_logger(filename,
     fh = logging.FileHandler(filename, mode=filemode)
 
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     fh.setFormatter(formatter)
 
     # add handler to logger object
@@ -26,4 +25,3 @@ def get_logger(filename,
         logger.addHandler(sh)
 
     return logger
-
