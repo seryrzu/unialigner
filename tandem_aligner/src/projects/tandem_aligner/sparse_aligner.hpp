@@ -41,9 +41,9 @@ class SparseAligner {
     const std::experimental::filesystem::path output_dir;
     bool no_paths; 
     bool bridges;
-    static std::vector<MinFreqInterval> Cols2Vec(const MinIntervalCollections &cols) {
+    static std::vector<MinFreqInterval> Cols2Vec(const MaxDisjointIntervalCollections &cols) {
         std::vector<MinFreqInterval> vec;
-        for (const MinIntervalCollection &col : cols)
+        for (const MaxDisjointIntervalCollection &col : cols)
             for (const auto &[_, interval] : col)
                 for (const int fst_coord : interval.GetFstCoords())
                     for (const int snd_coord : interval.GetSndCoords())
@@ -480,7 +480,7 @@ class SparseAligner {
 
     explicit SparseAligner(logging::Logger &logger, string output_dir, bool no_paths, bool bridges) : logger{logger}, output_dir{output_dir}, no_paths{no_paths}, bridges{bridges} {}
 
-    Cigar Align(const MinIntervalCollections &cols,
+    Cigar Align(const MaxDisjointIntervalCollections &cols,
                 const std::string &fst, const std::string &snd) {
         std::vector<MinFreqInterval> vec = Cols2Vec(cols);
         std::sort(vec.begin(), vec.end());

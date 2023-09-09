@@ -64,11 +64,11 @@ class TandemAligner {
         logger.debug() << "Building LCP array...\n";
         const suffix_array::LCP<std::string> lcp(suf_arr);
 
-        MinIntervalFinder
+        MaxDisjointIntervalFinder
             segment_finder(max_freq, force_highfreq_search, exprt,
                            output_dir/"min_interval_finder");
         logger.debug() << "Computing rare segments...\n";
-        const MinIntervalCollections
+        const MaxDisjointIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
 
         if (exprt) {

@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def list2str(lst, sep=' '):
+def list2str(lst, sep=" "):
     return sep.join(str(e) for e in lst)
 
 
