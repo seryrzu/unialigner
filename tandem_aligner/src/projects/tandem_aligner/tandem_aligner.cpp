@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv) {
     CLParser parser{{"output-dir=", "first=", "second=", "max_count=50",
-                     "debug", "force_highfreq_search"}, {},
+                     "debug", "force_highfreq_search", "no_paths", "bridges"}, {},
                     {"o=output-dir", "f=first", "s=second", "f=max_count"}};
     parser.parseCL(argc, argv);
     if (!parser.check().empty()) {
@@ -50,10 +50,14 @@ int main(int argc, char **argv) {
     int max_freq = std::stoi(parser.getValue("max_count"));
 
     bool force_highfreq_search = parser.getCheck("force_highfreq_search");
+    bool no_paths = parser.getCheck("no_paths");
+    bool bridges = parser.getCheck("bridges");
     tandem_aligner::TandemAligner(logger,
                                   output_dir,
                                   max_freq,
-                                  force_highfreq_search)
+                                  force_highfreq_search,
+                                  no_paths,
+                                  bridges)
         .Find(first_path, second_path);
 
     logger.info() << "Thank you for using TandemAligner!\n";
