@@ -35,9 +35,9 @@ bool operator<(const MinFreqInterval &lhs, const MinFreqInterval &rhs) {
 
 class SparseAligner {
     logging::Logger &logger;
-    static std::vector<MinFreqInterval> Cols2Vec(const MinIntervalCollections &cols) {
+    static std::vector<MinFreqInterval> Cols2Vec(const MaxDisjointIntervalCollections &cols) {
         std::vector<MinFreqInterval> vec;
-        for (const MinIntervalCollection &col : cols)
+        for (const MaxDisjointIntervalCollection &col : cols)
             for (const auto &[_, interval] : col)
                 for (const int fst_coord : interval.GetFstCoords())
                     for (const int snd_coord : interval.GetSndCoords())
@@ -186,7 +186,7 @@ class SparseAligner {
  public:
     explicit SparseAligner(logging::Logger &logger) : logger{logger} {}
 
-    Cigar Align(const MinIntervalCollections &cols,
+    Cigar Align(const MaxDisjointIntervalCollections &cols,
                 const std::string &fst, const std::string &snd) {
         std::vector<MinFreqInterval> vec = Cols2Vec(cols);
         std::sort(vec.begin(), vec.end());
