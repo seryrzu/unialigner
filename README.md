@@ -17,11 +17,11 @@ To build UniAligner from source, one needs Linux, GNU make and C++-20 compatible
 
 ```
   git clone git@github.com:seryrzu/unialigner.git
-  cd unialigner/unialigner
+  cd unialigner/tandem_aligner
   make -j4
 ```
 
-Then UniAligner will be available at `./build/bin/unialigner`.
+Then UniAligner will be available at `./build/bin/tandem_aligner`.
 
 To launch a test launch: `make test_launch` (typically instant).
 
@@ -30,14 +30,16 @@ To launch a test launch: `make test_launch` (typically instant).
 To align sequences `first.fasta` and `second.fasta` and save the alignment into the directory `output_dir`:
 
 ```
-  ./build/bin/unialigner --first first.fasta --second second.fasta -o output_dir
+  ./build/bin/tandem_aligner --first first.fasta --second second.fasta -o output_dir
 ```
 
 CIGAR string will be saved to `output_dir/cigar.txt`
 
 ## Citation
 
-TandemAligner: a new parameter-free framework for fast sequence alignment. Andrey V. Bzikadze, Pavel A. Pevzner, _bioRxiv_
+1. Bzikadze, A.V., Pevzner, P.A. UniAligner: a parameter-free framework for fast sequence alignment. Nat Methods 20, 1346–1354 (2023). https://doi.org/10.1038/s41592-023-01970-4
+
+2. TandemAligner: a new parameter-free framework for fast sequence alignment. Andrey V. Bzikadze, Pavel A. Pevzner, _bioRxiv_
 
 ## Contact
 Please report any problems to the [issue tracker](https://github.com/seryrzu/unialigner/issues).

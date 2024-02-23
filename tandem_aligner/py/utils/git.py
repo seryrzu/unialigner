@@ -4,8 +4,14 @@
 
 import subprocess
 
+
 def get_git_revision_hash():
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+
 
 def get_git_revision_short_hash():
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+    return (
+        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )

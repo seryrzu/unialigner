@@ -9,6 +9,7 @@ import numpy as np
 from utils.bio import parse_cigar
 from utils.os_utils import expandpath, smart_makedirs
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input")
@@ -19,8 +20,7 @@ def main():
     parser.add_argument("--title", default="")
     params = parser.parse_args()
 
-
-    for input_file in params.input.split(','):
+    for input_file in params.input.split(","):
         cx, cy = 0, 0
         x, y = [cx], [cy]
         with open(input_file) as f:
@@ -28,12 +28,12 @@ def main():
             print(cnt)
             for len, mode in parsed_cigar:
                 len = int(len)
-                if mode == 'M' or mode == 'X' or mode == '=':
+                if mode == "M" or mode == "X" or mode == "=":
                     cx += len
                     cy += len
-                elif mode == 'I':
+                elif mode == "I":
                     cy += len
-                elif mode == 'D':
+                elif mode == "D":
                     cx += len
 
                 x.append(cx / 1e6)
@@ -42,11 +42,12 @@ def main():
         plt.plot(x, y)
 
     if params.legend:
-        plt.legend(params.legend.split(','))
+        plt.legend(params.legend.split(","))
     plt.xlabel(params.asm1_name)
     plt.ylabel(params.asm2_name)
     plt.title(params.title)
-    plt.axis('square')
-    plt.savefig(os.path.join(params.output, 'cigar.pdf'), format='pdf')
+    plt.axis("square")
+    plt.savefig(os.path.join(params.output, "cigar.pdf"), format="pdf")
+
 
 main()

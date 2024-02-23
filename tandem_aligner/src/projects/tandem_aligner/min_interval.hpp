@@ -34,12 +34,12 @@ class MinInterval {
 
 std::ostream &operator<<(std::ostream &os, const MinInterval &interval);
 
-class MinIntervalCollection {
+class MaxDisjointIntervalCollection {
     int fst_freq{1}, snd_freq{1};
     std::unordered_map<int, MinInterval> intervals;
 
  public:
-    MinIntervalCollection(const int fst_freq, const int snd_freq) :
+    MaxDisjointIntervalCollection(const int fst_freq, const int snd_freq) :
         fst_freq{fst_freq}, snd_freq{snd_freq} {}
 
     MinInterval &operator[](const int &clas) { return intervals[clas]; }
@@ -68,43 +68,45 @@ class MinIntervalCollection {
     int GetSndFreq() const { return snd_freq; }
 };
 
-std::ostream &operator<<(std::ostream &os, const MinIntervalCollection &col);
+std::ostream &operator<<(std::ostream &os, const MaxDisjointIntervalCollection &col);
 
-using MinIntervalCollections = std::vector<MinIntervalCollection>;
+using MaxDisjointIntervalCollections = std::vector<MaxDisjointIntervalCollection>;
 
-std::ostream &operator<<(std::ostream &os, const MinIntervalCollections &cols);
+std::ostream &operator<<(std::ostream &os, const MaxDisjointIntervalCollections &cols);
 
-class MinIntervalFinder {
+class MaxDisjointIntervalFinder {
     const int max_freq{1};
     const int min_freq{1};
     bool force_highfreq_search{false};
     bool exprt{true};
     std::experimental::filesystem::path outdir;
 
-    struct MinRarePrefix {
-        struct ClassMinLen {
+    struct MinMaxRarePrefixArray {
+        // represents shortest and longest prefixes present fst_freq (snd_freq) times in the first (second) seq
+        struct MinMaxRarePrefix {
             int clas{-1};
-            int len{std::numeric_limits<int>::max()};
+            int min_len{std::numeric_limits<int>::max()}; // length of shortest (fst_freq,snd_freq)-prefix
+            int max_len{std::numeric_limits<int>::max()}; // length of longest (fst_freq,snd_freq)-prefix
 
             [[nodiscard]] bool IsInit() const {
-                return clas!=-1 and len!=std::numeric_limits<int>::max();
+                return clas!=-1 and min_len!=std::numeric_limits<int>::max();
             }
         };
 
         const int fst_freq{0}, snd_freq{0};
-        std::vector<ClassMinLen> mrp; // shortest rare prefix
+        std::vector<MinMaxRarePrefix> mrp; // shortest rare prefix
 
-        MinRarePrefix(const int fst_freq, const int snd_freq,
+        MinMaxRarePrefixArray(const int fst_freq, const int snd_freq,
                       const int length) :
             fst_freq{fst_freq}, snd_freq{snd_freq}, mrp(length) {}
 
-        ClassMinLen &operator[](int i) { return mrp[i]; }
-        const ClassMinLen &operator[](int i) const { return mrp[i]; }
+        MinMaxRarePrefix &operator[](int i) { return mrp[i]; }
+        const MinMaxRarePrefix &operator[](int i) const { return mrp[i]; }
 
         [[nodiscard]] int Size() const { return mrp.size(); }
     };
 
-    [[nodiscard]] std::vector<MinRarePrefix> GetMRP(const LCP &lcp,
+    [[nodiscard]] std::vector<MinMaxRarePrefixArray> GetMRP(const LCP &lcp,
                                                     const int fst_len) const;
 
     struct ClassCoord {
@@ -112,15 +114,15 @@ class MinIntervalFinder {
         int coord{-1};
     };
 
-    [[nodiscard]] MinIntervalCollections
-    PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec,
+    [[nodiscard]] MaxDisjointIntervalCollections
+    PrefixesToIntervals(const std::vector<MinMaxRarePrefixArray> &mrp_vec,
                         const int fst_len) const;
 
-    void OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
+    void OutputMRP(const std::vector<MinMaxRarePrefixArray> &srp_vec,
                    std::experimental::filesystem::path outpath) const;
 
  public:
-    MinIntervalFinder(int max_freq,
+    MaxDisjointIntervalFinder(int max_freq,
                       bool force_highfreq_search,
                       bool exprt,
                       std::experimental::filesystem::path outdir) :
@@ -130,7 +132,7 @@ class MinIntervalFinder {
         ensure_dir_existance(this->outdir);
     }
 
-    [[nodiscard]] MinIntervalCollections Find(const suffix_array::LCP<std::string> &lcp,
+    [[nodiscard]] MaxDisjointIntervalCollections Find(const suffix_array::LCP<std::string> &lcp,
                                               const int fst_len) const;
 };
 

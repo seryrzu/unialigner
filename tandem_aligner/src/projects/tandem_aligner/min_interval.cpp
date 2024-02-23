@@ -3,6 +3,7 @@
 //
 
 #include "min_interval.hpp"
+#include <iostream>
 
 using namespace tandem_aligner;
 
@@ -21,7 +22,7 @@ std::ostream &tandem_aligner::operator<<(std::ostream &os,
 }
 
 std::ostream &tandem_aligner::operator<<(std::ostream &os,
-                                         const MinIntervalCollection &col) {
+                                         const MaxDisjointIntervalCollection &col) {
     for (const auto &[clas, interval] : col) {
         os << col.GetFstFreq() << "\t" << col.GetSndFreq() << "\t" << interval;
     }
@@ -29,20 +30,20 @@ std::ostream &tandem_aligner::operator<<(std::ostream &os,
 }
 
 std::ostream &tandem_aligner::operator<<(std::ostream &os,
-                                         const MinIntervalCollections &cols) {
+                                         const MaxDisjointIntervalCollections &cols) {
     os << "FstFreq\tSndFreq\tLength\tFstStarts\t"
           "SndStarts\n";
-    for (const MinIntervalCollection &col : cols) {
+    for (const MaxDisjointIntervalCollection &col : cols) {
         os << col;
     }
     return os;
 }
 
-[[nodiscard]] std::vector<MinIntervalFinder::MinRarePrefix>
-MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
+[[nodiscard]] std::vector<MaxDisjointIntervalFinder::MinMaxRarePrefixArray>
+MaxDisjointIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
     VERIFY(lcp.PSufArr()!=nullptr);
     const SuffixArray suf_arr = *lcp.PSufArr();
-    std::vector<MinRarePrefix> mrp_vec;
+    std::vector<MinMaxRarePrefixArray> mrp_vec;
     for (auto [found_anchor, w] = std::make_pair<bool, int>(false, 2);
          not found_anchor and w <= 2*std::min(fst_len, max_freq); w++) {
         for (int i = 1; i <= w - 1; ++i) {
@@ -85,7 +86,7 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
                     // srp_vec[srp_index].srp[suf_arr[k]] =
                     //     {i, std::max(prev, next) + 1};
                     mrp_vec[srp_index][suf_arr[k]] =
-                        {i, std::max(prev, next) + 1};
+                        {i, std::max(prev, next) + 1, cur};
                 }
             }
             prev = next;
@@ -96,29 +97,48 @@ MinIntervalFinder::GetMRP(const LCP &lcp, const int fst_len) const {
     return mrp_vec;
 }
 
-[[nodiscard]] MinIntervalCollections
-MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec,
+[[nodiscard]] MaxDisjointIntervalCollections
+MaxDisjointIntervalFinder::PrefixesToIntervals(const std::vector<MinMaxRarePrefixArray> &mrp_vec,
                                        const int fst_len) const {
-    MinIntervalCollections cols;
-    for (const MinRarePrefix &mrp : mrp_vec) {
-        std::vector<ClassCoord> en2st(mrp.Size() + 1);
+    MaxDisjointIntervalCollections cols;
+    // find coords and collapse all mrp with same min_end
+    for (const MinMaxRarePrefixArray &mrp : mrp_vec) {
+        std::vector<ClassCoord> minen2st(mrp.Size() + 1);
         int cur_en{-1};
         for (int st = 0; st < mrp.Size(); ++st) {
             if (not mrp[st].IsInit()) {
                 continue;
             }
 
-            int en = st + mrp[st].len;
-            int cur_st = en2st[en].coord;
+            int en = st + mrp[st].min_len;
+            int cur_st = minen2st[en].coord;
             if (st > cur_st or cur_st==-1)
-                en2st[en] = {mrp[st].clas, st};
+                minen2st[en] = {mrp[st].clas, st};
         }
 
         auto &col = cols.emplace_back(mrp.fst_freq, mrp.snd_freq);
+        // collapse all mrp with same max_end and set end as last min_end
+        std::unordered_map<int,ClassCoord> maxen2st;
+        std::unordered_map<int, int> maxen2minen;
         for (int en = 0; en < mrp.Size(); ++en) {
-            int clas{en2st[en].lcp_class}, st{en2st[en].coord};
+            int clas{minen2st[en].lcp_class}, st{minen2st[en].coord};
+                if (clas!=-1) {
+                int maxen = st + mrp[st].max_len;
+                if ((maxen2st[maxen].coord == -1)or (st < maxen2st[maxen].coord)){
+                    maxen2st[maxen] = {clas, st};
+                }
+                if ((maxen2minen[maxen] == 0)or (en > maxen2minen[maxen])){
+                    maxen2minen[maxen] = en;
+                }
+            }
+        }
+
+        for (auto maxen2st_elem:maxen2st ) {
+            int maxen{maxen2st_elem.first}, clas{maxen2st_elem.second.lcp_class}, st{maxen2st_elem.second.coord};
+            int minen{maxen2minen[maxen]};
+
             if (clas!=-1) {
-                col.Emplace(clas, en - st);
+                col.Emplace(clas, minen - st);
                 if (st < fst_len) {
                     col[clas].PushBackFst(st);
                 } else {
@@ -130,26 +150,26 @@ MinIntervalFinder::PrefixesToIntervals(const std::vector<MinRarePrefix> &mrp_vec
     return cols;
 }
 
-void MinIntervalFinder::OutputMRP(const std::vector<MinRarePrefix> &srp_vec,
+void MaxDisjointIntervalFinder::OutputMRP(const std::vector<MinMaxRarePrefixArray> &srp_vec,
                                   std::experimental::filesystem::path outpath) const {
     ensure_dir_existance(outpath);
-    for (const MinRarePrefix &srp : srp_vec) {
+    for (const MinMaxRarePrefixArray &srp : srp_vec) {
         std::stringstream fn_ss;
         fn_ss << "FstFreq" << srp.fst_freq << "_SndFreq" << srp.snd_freq
               << ".tsv";
         std::ofstream os(outpath/fn_ss.str());
         os << "Pos\tLength\n";
         for (auto it = srp.mrp.begin(); it!=srp.mrp.end(); ++it) {
-            os << it - srp.mrp.begin() << "\t" << it->len << "\n";
+            os << it - srp.mrp.begin() << "\t" << it->min_len << "\n";
         }
     }
 }
 
-[[nodiscard]] MinIntervalCollections
-MinIntervalFinder::Find(const suffix_array::LCP<std::string> &lcp,
+[[nodiscard]] MaxDisjointIntervalCollections
+MaxDisjointIntervalFinder::Find(const suffix_array::LCP<std::string> &lcp,
                         const int fst_len) const {
 
-    const std::vector<MinRarePrefix> srp_vec = GetMRP(lcp, fst_len);
+    const std::vector<MinMaxRarePrefixArray> srp_vec = GetMRP(lcp, fst_len);
     if (exprt)
         OutputMRP(srp_vec, outdir/"min_rare_prefixes");
     return PrefixesToIntervals(srp_vec, fst_len);

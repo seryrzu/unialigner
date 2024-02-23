@@ -25,6 +25,8 @@ class TandemAligner {
     int max_freq{1};
     bool force_highfreq_search{false};
     const std::experimental::filesystem::path output_dir;
+    bool no_paths;
+    bool bridges;
 
     [[nodiscard]] std::string ReadContig(const std::experimental::filesystem::path &path) const {
         io::SeqReader reader(path);
@@ -62,11 +64,11 @@ class TandemAligner {
         logger.debug() << "Building LCP array...\n";
         const suffix_array::LCP<std::string> lcp(suf_arr);
 
-        MinIntervalFinder
+        MaxDisjointIntervalFinder
             segment_finder(max_freq, force_highfreq_search, exprt,
                            output_dir/"min_interval_finder");
         logger.debug() << "Computing rare segments...\n";
-        const MinIntervalCollections
+        const MaxDisjointIntervalCollections
             int_col = segment_finder.Find(lcp, task.len1);
 
         if (exprt) {
@@ -75,8 +77,8 @@ class TandemAligner {
         }
 
         logger.debug() << "Aligning...\n";
-        Cigar cigar = SparseAligner(logger).Align(int_col,
-                                                  first_substr, second_substr);
+        Cigar cigar = SparseAligner(logger, output_dir, exprt & no_paths, exprt & bridges).Align(int_col,
+                                                  first_substr, second_substr); //exprt & for primary alignment
         auto main_cigar_it = main_cigar.AssignInterval(cigar, task.cigar_it);
         logger.debug() << "Finished alignment\n";
         if (cigar.Size() > 2) {
@@ -171,9 +173,11 @@ class TandemAligner {
     TandemAligner(logging::Logger &logger,
                   std::experimental::filesystem::path output_dir,
                   const int max_freq,
-                  const bool force_highfreq_search) :
+                  const bool force_highfreq_search,
+                  bool no_paths,
+                  bool bridges) :
         logger{logger}, output_dir{std::move(output_dir)}, max_freq{max_freq},
-        force_highfreq_search{force_highfreq_search} {}
+        force_highfreq_search{force_highfreq_search}, no_paths{no_paths}, bridges{bridges} {}
 
     void Find(const std::experimental::filesystem::path &first_path,
               const std::experimental::filesystem::path &second_path) const {
@@ -189,6 +193,8 @@ class TandemAligner {
         queue.push({cigar.begin(), 0, (int64_t) first.size(), 0,
                     (int64_t) second.size()});
         logger.info() << "Running primary alignment...\n";
+        if (no_paths) std::ofstream no_paths(output_dir/"no_paths.csv"); //just empty the file 
+        if (bridges) std::ofstream no_paths(output_dir/"bridges.txt"); //just empty the file 
         RunTask(queue, cigar, first, second,
                 /*export_matches*/ true);
         logger.info() << "Number of indel-blocks " << queue.size() << "\n";
